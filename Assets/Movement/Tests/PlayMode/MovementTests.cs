@@ -69,6 +69,16 @@ namespace AllAboard.Movement.Tests
         }
 
         [Test]
+        public void SprintIsFasterAndStillClampsDiagonalSpeed()
+        {
+            Tick(Vector2.up, 60);
+            float walking = motor.HorizontalSpeed;
+            for (int i = 0; i < 60; i++) motor.Simulate(Vector2.one, false, Step, true);
+            Assert.That(motor.HorizontalSpeed, Is.EqualTo(8f).Within(0.001f));
+            Assert.That(motor.HorizontalSpeed, Is.GreaterThan(walking));
+        }
+
+        [Test]
         public void WallBlocksMovement()
         {
             obstruction = GameObject.CreatePrimitive(PrimitiveType.Cube);

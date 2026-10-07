@@ -4,8 +4,16 @@ Open `Assets/Movement/Scenes/MovementPlayground.unity` and press Play.
 If the scene is missing, use **All Aboard > Create Movement Playground**.
 
 - WASD: walk; mouse: look; Space: jump.
+- Hold either Shift key to sprint (8 metres/second).
+- Aim the center dot at the blue cube: a white outline indicates it can be picked up.
+- E: pick up. The dot disappears and the hands grip either side of the cube.
+- Tap Q: drop. Hold Q: charge the small bar; release Q: throw in the look direction.
+- After dropping or throwing, the hands return to rest and do not follow the cube.
+- Full throw charge takes 1.2 seconds. Charge changes launch speed from 3 to 12 m/s.
 - Escape: release the mouse; left click in the Game view: capture it again.
 - Two floating spheres represent the hands, with subtle walking bob and mouse sway.
+- Only the hands have a black outline. Adjust Outline Thickness and Outline Color
+  on `Assets/Movement/Materials/HandOutline.mat` (zero thickness hides the border).
 - The playground has steps, a ramp, jump blocks, walls, and a low ceiling.
 - Falling below the playground respawns the player.
 
@@ -18,12 +26,18 @@ Runtime gameplay is C#. Python is reserved for offline development tools.
 The video reference informs the first-person presentation; these controls are
 a starting point, not a measured recreation of its movement.
 
-This is a single-player movement foundation. Train platform movement, inherited
-train velocity, physical grabbing, networking, and Steam integration are future
+This is a single-player movement and object physics foundation. Train platform
+movement, inherited train velocity, networking, and Steam integration are future
 work. Hands are cosmetic and have no colliders. Character movement uses Unity's
-CharacterController; the player does not push Rigidbody objects yet.
+CharacterController; the player does not push Rigidbody objects by walking yet.
+Loose items use Rigidbody gravity and collision. The cube has mass, friction,
+slight bounce, damping, and continuous collision detection. Carrying constrains
+the body and checks walls; releasing restores simulation and applies the player's
+velocity plus the charged throw velocity. Dropping stays at the current hand
+position. `ObjectPhysics.physicMaterial` controls friction and bounce.
 
-Play Mode tests cover jump/landing, diagonal speed, wall collision, and ceiling
-collision. Run them from **Window > General > Test Runner > PlayMode**.
+Play Mode tests cover jump/landing, diagonal speed, sprint, wall/ceiling collision,
+pickup/drop gravity, charged throws, reach limits, and hands returning after a throw.
+Run them from **Window > General > Test Runner > PlayMode**.
 The existing SampleScene and build scene list are preserved; open the playground
 explicitly for now.

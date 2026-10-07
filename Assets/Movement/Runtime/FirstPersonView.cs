@@ -18,6 +18,18 @@ namespace AllAboard.Movement
         private Vector3 handRestPosition;
         private float pitch;
         private float bobPhase;
+        private Transform leftHand;
+        private Transform rightHand;
+        private Vector3 leftRest;
+        private Vector3 rightRest;
+        private Transform heldObject;
+        private float gripHalfWidth;
+
+        public void SetHeldObject(Transform item, float halfWidth = 0f)
+        {
+            heldObject = item;
+            gripHalfWidth = halfWidth;
+        }
 
         public void Configure(Transform pivot, Transform handRoot)
         {
@@ -29,7 +41,14 @@ namespace AllAboard.Movement
         {
             input = GetComponent<PlayerInputReader>();
             motor = GetComponent<FirstPersonMotor>();
-            if (hands != null) handRestPosition = hands.localPosition;
+            if (hands != null)
+            {
+                handRestPosition = hands.localPosition;
+                leftHand = hands.Find("Left Hand");
+                rightHand = hands.Find("Right Hand");
+                if (leftHand != null) leftRest = leftHand.localPosition;
+                if (rightHand != null) rightRest = rightHand.localPosition;
+            }
         }
 
         private void Update()
@@ -44,6 +63,17 @@ namespace AllAboard.Movement
         private void LateUpdate()
         {
             if (hands == null) return;
+            if (heldObject != null)
+            {
+                hands.localPosition = handRestPosition;
+                Vector3 side = heldObject.right * (gripHalfWidth + 0.06f);
+                if (leftHand != null) leftHand.position = heldObject.position - side;
+                if (rightHand != null) rightHand.position = heldObject.position + side;
+                return;
+            }
+            float blend = 1f - Mathf.Exp(-14f * Time.deltaTime);
+            if (leftHand != null) leftHand.localPosition = Vector3.Lerp(leftHand.localPosition, leftRest, blend);
+            if (rightHand != null) rightHand.localPosition = Vector3.Lerp(rightHand.localPosition, rightRest, blend);
             Vector2 delta = input.HasControl ? Vector2.ClampMagnitude(input.Look, 35f) : Vector2.zero;
             float strength = motor.Grounded ? Mathf.Clamp01(motor.HorizontalSpeed / 5f) : 0f;
             bobPhase += Time.deltaTime * motor.HorizontalSpeed * 2.2f;

@@ -8,10 +8,18 @@ namespace AllAboard.Movement
         private InputAction move;
         private InputAction look;
         private InputAction jump;
+        private InputAction interact;
+        private InputAction sprint;
+        private InputAction drop;
 
         public Vector2 Move => move.ReadValue<Vector2>();
         public Vector2 Look => look.ReadValue<Vector2>();
         public bool JumpPressed => jump.WasPressedThisFrame();
+        public bool InteractPressed => interact.WasPressedThisFrame();
+        public bool SprintHeld => sprint.IsPressed();
+        public bool DropHeld => drop.IsPressed();
+        public bool DropPressed => drop.WasPressedThisFrame();
+        public bool DropReleased => drop.WasReleasedThisFrame();
         public bool HasControl => Application.isFocused && Cursor.lockState == CursorLockMode.Locked;
 
         private void Awake()
@@ -22,6 +30,10 @@ namespace AllAboard.Movement
                 .With("Left", "<Keyboard>/a").With("Right", "<Keyboard>/d");
             look = new InputAction("Look", InputActionType.Value, "<Mouse>/delta");
             jump = new InputAction("Jump", InputActionType.Button, "<Keyboard>/space");
+            interact = new InputAction("Interact", InputActionType.Button, "<Keyboard>/e");
+            sprint = new InputAction("Sprint", InputActionType.Button, "<Keyboard>/leftShift");
+            sprint.AddBinding("<Keyboard>/rightShift");
+            drop = new InputAction("Drop / Throw", InputActionType.Button, "<Keyboard>/q");
         }
 
         private void OnEnable()
@@ -29,6 +41,9 @@ namespace AllAboard.Movement
             move.Enable();
             look.Enable();
             jump.Enable();
+            interact.Enable();
+            sprint.Enable();
+            drop.Enable();
             CaptureCursor();
         }
 
@@ -62,6 +77,9 @@ namespace AllAboard.Movement
             move?.Disable();
             look?.Disable();
             jump?.Disable();
+            interact?.Disable();
+            sprint?.Disable();
+            drop?.Disable();
             ReleaseCursor();
         }
 
@@ -70,6 +88,9 @@ namespace AllAboard.Movement
             move?.Dispose();
             look?.Dispose();
             jump?.Dispose();
+            interact?.Dispose();
+            sprint?.Dispose();
+            drop?.Dispose();
         }
     }
 }

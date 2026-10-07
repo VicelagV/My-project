@@ -101,6 +101,8 @@ namespace AllAboard.Editor
                     renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 }
                 player.AddComponent<FirstPersonView>().Configure(camera.transform, handRoot);
+                HandOutlineBuilder.AddOutlines(player);
+                ObjectPhysicsPrototypeBuilder.SetupPlayer(player, camera.transform);
                 prefab = PrefabUtility.SaveAsPrefabAsset(player, prefabPath);
                 Object.DestroyImmediate(player);
             }
@@ -114,6 +116,7 @@ namespace AllAboard.Editor
             }
             AssetDatabase.SaveAssets();
             Debug.Log("Created movement playground: " + ScenePath);
+            ObjectPhysicsPrototypeBuilder.Apply();
         }
 
         private static Material Material(string name, Color color)

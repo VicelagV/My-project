@@ -11,6 +11,7 @@ namespace AllAboard.Movement
         private InputAction interact;
         private InputAction sprint;
         private InputAction drop;
+        private InputAction crouch;
 
         public Vector2 Move => move.ReadValue<Vector2>();
         public Vector2 Look => look.ReadValue<Vector2>();
@@ -20,6 +21,7 @@ namespace AllAboard.Movement
         public bool DropHeld => drop.IsPressed();
         public bool DropPressed => drop.WasPressedThisFrame();
         public bool DropReleased => drop.WasReleasedThisFrame();
+        public bool CrouchPressed => crouch.WasPressedThisFrame();
         public bool HasControl => Application.isFocused && Cursor.lockState == CursorLockMode.Locked;
 
         private void Awake()
@@ -34,6 +36,7 @@ namespace AllAboard.Movement
             sprint = new InputAction("Sprint", InputActionType.Button, "<Keyboard>/leftShift");
             sprint.AddBinding("<Keyboard>/rightShift");
             drop = new InputAction("Drop / Throw", InputActionType.Button, "<Keyboard>/q");
+            crouch = new InputAction("Crouch", InputActionType.Button, "<Keyboard>/c");
         }
 
         private void OnEnable()
@@ -44,6 +47,7 @@ namespace AllAboard.Movement
             interact.Enable();
             sprint.Enable();
             drop.Enable();
+            crouch.Enable();
             CaptureCursor();
         }
 
@@ -80,6 +84,7 @@ namespace AllAboard.Movement
             interact?.Disable();
             sprint?.Disable();
             drop?.Disable();
+            crouch?.Disable();
             ReleaseCursor();
         }
 
@@ -91,6 +96,7 @@ namespace AllAboard.Movement
             interact?.Dispose();
             sprint?.Dispose();
             drop?.Dispose();
+            crouch?.Dispose();
         }
     }
 }

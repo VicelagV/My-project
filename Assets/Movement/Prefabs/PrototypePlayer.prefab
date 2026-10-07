@@ -485,6 +485,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: AllAboard.Movement::AllAboard.Movement.FirstPersonMotor
   walkSpeed: 5
   sprintSpeed: 8
+  crouchSpeed: 2.5
+  crouchHeight: 1.1
   groundAcceleration: 35
   airAcceleration: 12
   jumpHeight: 1.2
@@ -510,6 +512,12 @@ MonoBehaviour:
   pitchLimit: 85
   handBob: 0.012
   handSway: 0.0006
+  movementLag: 0.015
+  turnLag: 0.0003
+  inertiaResponse: 0.1
+  maximumInertia: 0.12
+  maximumTurnLag: 5
+  crouchCameraSpeed: 6
 --- !u!114 &231552438659000129
 MonoBehaviour:
   m_ObjectHideFlags: 0

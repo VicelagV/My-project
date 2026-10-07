@@ -5,6 +5,9 @@ If the scene is missing, use **All Aboard > Create Movement Playground**.
 
 - WASD: walk; mouse: look; Space: jump.
 - Hold either Shift key to sprint (8 metres/second).
+- C toggles crouch: slower movement, a lower camera, and a shorter collider.
+  Standing is blocked under low ceilings; leave the tunnel and press C again.
+  Sprinting while crouched stays at crouch speed (2.5 metres/second).
 - Aim the center dot at the blue cube: a white outline indicates it can be picked up.
 - E: pick up. The dot disappears and the hands grip either side of the cube.
 - Tap Q: drop. Hold Q: charge the small bar; release Q: throw in the look direction.
@@ -12,14 +15,19 @@ If the scene is missing, use **All Aboard > Create Movement Playground**.
 - Full throw charge takes 1.2 seconds. Charge changes launch speed from 3 to 12 m/s.
 - Escape: release the mouse; left click in the Game view: capture it again.
 - Two floating spheres represent the hands, with subtle walking bob and mouse sway.
+- Hands and held objects lag slightly behind movement and turns, then settle.
+  The lag is bounded; it does not move the camera or change your aiming direction.
 - Only the hands have a black outline. Adjust Outline Thickness and Outline Color
   on `Assets/Movement/Materials/HandOutline.mat` (zero thickness hides the border).
 - The playground has steps, a ramp, jump blocks, walls, and a low ceiling.
+- The low tunnel on the right near the start requires crouching to pass through.
 - Falling below the playground respawns the player.
 
 The reusable player prefab is in `Assets/Movement/Prefabs/PrototypePlayer.prefab`.
 Tune speed, acceleration, jump height, gravity, and jump forgiveness on
 `FirstPersonMotor`. Tune sensitivity and hand motion on `FirstPersonView`.
+Movement Lag, Turn Lag, Inertia Response, and Maximum Inertia control the trailing
+feel. Crouch Height, Crouch Speed, and Crouch Camera Speed control crouching.
 Defaults: 5 metres/second, 1.2 metre jump, 75 degree field of view.
 
 Runtime gameplay is C#. Python is reserved for offline development tools.
@@ -38,6 +46,8 @@ position. `ObjectPhysics.physicMaterial` controls friction and bounce.
 
 Play Mode tests cover jump/landing, diagonal speed, sprint, wall/ceiling collision,
 pickup/drop gravity, charged throws, reach limits, and hands returning after a throw.
+They also cover crouch clearance, camera height, crouch speed, bounded inertia,
+settling after stopping, and held-object lag.
 Run them from **Window > General > Test Runner > PlayMode**.
 The existing SampleScene and build scene list are preserved; open the playground
 explicitly for now.

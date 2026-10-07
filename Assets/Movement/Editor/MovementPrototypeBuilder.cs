@@ -117,6 +117,7 @@ namespace AllAboard.Editor
             AssetDatabase.SaveAssets();
             Debug.Log("Created movement playground: " + ScenePath);
             ObjectPhysicsPrototypeBuilder.Apply();
+            MovementRefinementBuilder.Apply();
         }
 
         private static Material Material(string name, Color color)

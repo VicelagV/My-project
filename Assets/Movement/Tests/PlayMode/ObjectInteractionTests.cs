@@ -89,6 +89,28 @@ namespace AllAboard.Movement.Tests
         }
 
         [UnityTest]
+        public IEnumerator CrouchingLowersCameraAndHeldCubeTrailsMovement()
+        {
+            var motor = player.GetComponent<FirstPersonMotor>();
+            Transform camera = player.transform.Find("Player Camera");
+            Assert.That(motor.SetCrouched(true), Is.True);
+            for (int i = 0; i < 20; i++) yield return new WaitForFixedUpdate();
+            Assert.That(camera.localPosition.y, Is.EqualTo(0.9f).Within(0.03f));
+            cube.transform.position = camera.TransformPoint(new Vector3(0f, -0.18f, 1.1f));
+            Physics.SyncTransforms();
+            Assert.That(interaction.TryPickup(item), Is.True);
+            for (float elapsed = 0f; elapsed < 0.5f; elapsed += Time.deltaTime)
+            {
+                player.transform.position += Vector3.forward * (4f * Time.deltaTime);
+                yield return null;
+            }
+            Assert.That(player.GetComponent<FirstPersonView>().InertiaOffset.z, Is.LessThan(-0.005f));
+            float heldDistance = Vector3.Dot(cube.transform.position - camera.position, camera.forward);
+            Assert.That(heldDistance, Is.InRange(0.8f, 1.1f));
+            interaction.Drop();
+        }
+
+        [UnityTest]
         public IEnumerator HandsReturnToRestInsteadOfFollowingThrownCube()
         {
             Assert.That(interaction.TryPickup(item), Is.True);

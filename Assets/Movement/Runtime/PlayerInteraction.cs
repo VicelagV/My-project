@@ -87,7 +87,7 @@ namespace AllAboard.Movement
         {
             if (held == null || cameraPivot == null) return;
             Vector3 offset = cameraPivot.forward * (holdDistance + (charging ? Charge * 0.15f : 0f))
-                + cameraPivot.up * holdVerticalOffset;
+                + cameraPivot.up * holdVerticalOffset + cameraPivot.TransformVector(view.InertiaOffset);
             float distance = offset.magnitude;
             Vector3 direction = offset / distance;
             // A swept volume stops the held cube at walls rather than passing through them.
@@ -98,7 +98,7 @@ namespace AllAboard.Movement
                 distance = Mathf.Min(distance, Mathf.Max(0f, hit.distance - 0.02f));
             }
             held.Body.MovePosition(cameraPivot.position + direction * distance);
-            held.Body.MoveRotation(cameraPivot.rotation);
+            held.Body.MoveRotation(cameraPivot.rotation * view.InertiaRotation);
         }
 
         public void Drop()

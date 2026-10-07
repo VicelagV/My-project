@@ -79,6 +79,33 @@ namespace AllAboard.Movement.Tests
         }
 
         [Test]
+        public void CrouchPreservesFeetAndLimitsSpeedEvenWithSprint()
+        {
+            var controller = player.GetComponent<CharacterController>();
+            float feet = controller.center.y - controller.height * 0.5f;
+            Assert.That(motor.SetCrouched(true), Is.True);
+            Assert.That(controller.height, Is.EqualTo(1.1f).Within(0.001f));
+            Assert.That(controller.center.y - controller.height * 0.5f, Is.EqualTo(feet).Within(0.001f));
+            for (int i = 0; i < 60; i++) motor.Simulate(Vector2.up, false, Step, true);
+            Assert.That(motor.HorizontalSpeed, Is.EqualTo(2.5f).Within(0.001f));
+        }
+
+        [Test]
+        public void LowCeilingBlocksStandingUntilPlayerLeaves()
+        {
+            motor.SetCrouched(true);
+            obstruction = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            obstruction.transform.position = new Vector3(0f, 1.45f, 0f);
+            obstruction.transform.localScale = new Vector3(3f, 0.3f, 3f);
+            Physics.SyncTransforms();
+            Assert.That(motor.SetCrouched(false), Is.False);
+            Assert.That(motor.IsCrouched, Is.True);
+            Tick(Vector2.right, 120);
+            Assert.That(motor.SetCrouched(false), Is.True);
+            Assert.That(player.GetComponent<CharacterController>().height, Is.EqualTo(1.8f).Within(0.001f));
+        }
+
+        [Test]
         public void WallBlocksMovement()
         {
             obstruction = GameObject.CreatePrimitive(PrimitiveType.Cube);

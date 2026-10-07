@@ -12,9 +12,11 @@ namespace AllAboard.Movement
         private Collider holder;
         private Coroutine restoreCollision;
         private CollisionDetectionMode releasedCollisionMode;
+        private RigidbodyInterpolation releasedInterpolation;
         public bool IsHeld { get; private set; }
         public Rigidbody Body => body;
         public float Radius => Vector3.Scale(box.size, transform.lossyScale).magnitude * 0.5f;
+        public Vector3 HalfExtents => Vector3.Scale(box.size, transform.lossyScale) * 0.5f;
         public float GripHalfWidth => Mathf.Abs(box.size.x * transform.lossyScale.x) * 0.5f;
 
         public void Configure(Renderer outline) => hoverOutline = outline;
@@ -45,6 +47,8 @@ namespace AllAboard.Movement
             body.linearVelocity = Vector3.zero;
             body.angularVelocity = Vector3.zero;
             releasedCollisionMode = body.collisionDetectionMode;
+            releasedInterpolation = body.interpolation;
+            body.interpolation = RigidbodyInterpolation.None;
             body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
             body.isKinematic = true;
             IsHeld = true;
@@ -58,6 +62,7 @@ namespace AllAboard.Movement
             IsHeld = false;
             body.isKinematic = false;
             body.collisionDetectionMode = releasedCollisionMode;
+            body.interpolation = releasedInterpolation;
             body.useGravity = true;
             body.linearVelocity = velocity;
             body.WakeUp();

@@ -83,22 +83,27 @@ namespace AllAboard.Movement
             return true;
         }
 
-        private void FixedUpdate()
+        public void UpdateHeldPose()
         {
             if (held == null || cameraPivot == null) return;
             Vector3 offset = cameraPivot.forward * (holdDistance + (charging ? Charge * 0.15f : 0f))
                 + cameraPivot.up * holdVerticalOffset + cameraPivot.TransformVector(view.InertiaOffset);
             float distance = offset.magnitude;
             Vector3 direction = offset / distance;
-            // A swept volume stops the held cube at walls rather than passing through them.
-            foreach (RaycastHit hit in Physics.SphereCastAll(cameraPivot.position, held.Radius,
-                direction, distance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            Quaternion rotation = cameraPivot.rotation * view.InertiaRotation;
+            // Match the cube's shape; a bounding sphere pulls it too close when aiming at the floor.
+            foreach (RaycastHit hit in Physics.BoxCastAll(cameraPivot.position, held.HalfExtents,
+                direction, rotation, distance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
             {
                 if (hit.collider == playerCollider || hit.collider.attachedRigidbody == held.Body) continue;
                 distance = Mathf.Min(distance, Mathf.Max(0f, hit.distance - 0.02f));
             }
-            held.Body.MovePosition(cameraPivot.position + direction * distance);
-            held.Body.MoveRotation(cameraPivot.rotation * view.InertiaRotation);
+            // Held items are constrained poses. Free items resume normal fixed-step simulation on release.
+            Vector3 position = cameraPivot.position + direction * distance;
+            held.Body.position = position;
+            held.Body.rotation = rotation;
+            // Rigidbody setters can leave the rendered transform on the previous physics pose.
+            held.transform.SetPositionAndRotation(position, rotation);
         }
 
         public void Drop()

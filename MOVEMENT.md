@@ -17,6 +17,10 @@ If the scene is missing, use **All Aboard > Create Movement Playground**.
 - Two floating spheres represent the hands, with subtle walking bob and mouse sway.
 - Hands and held objects lag slightly behind movement and turns, then settle.
   The lag is bounded; it does not move the camera or change your aiming direction.
+  Crouch eye-height animation does not add inertia. While carrying, the cube and
+  gripping hands share the current camera pose; free-object interpolation resumes
+  after release. Shape-aware carry clearance keeps floor aiming from pulling the
+  cube into the camera.
 - Only the hands have a black outline. Adjust Outline Thickness and Outline Color
   on `Assets/Movement/Materials/HandOutline.mat` (zero thickness hides the border).
 - The playground has steps, a ramp, jump blocks, walls, and a low ceiling.
@@ -47,7 +51,8 @@ position. `ObjectPhysics.physicMaterial` controls friction and bounce.
 Play Mode tests cover jump/landing, diagonal speed, sprint, wall/ceiling collision,
 pickup/drop gravity, charged throws, reach limits, and hands returning after a throw.
 They also cover crouch clearance, camera height, crouch speed, bounded inertia,
-settling after stopping, and held-object lag.
+settling after stopping, held-object lag, repeated crouching while holding, and
+looking down near the floor while crouched.
 Run them from **Window > General > Test Runner > PlayMode**.
 The existing SampleScene and build scene list are preserved; open the playground
 explicitly for now.

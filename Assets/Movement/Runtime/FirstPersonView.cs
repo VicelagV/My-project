@@ -31,6 +31,7 @@ namespace AllAboard.Movement
         private Transform heldObject;
         private float gripHalfWidth;
         private float standingEyeHeight;
+        private PlayerInteraction interaction;
         private readonly ViewMotionInertia inertia = new ViewMotionInertia();
         public Vector3 InertiaOffset => inertia.Offset;
         public Quaternion InertiaRotation => Quaternion.Euler(inertia.Angles);
@@ -51,6 +52,7 @@ namespace AllAboard.Movement
         {
             input = GetComponent<PlayerInputReader>();
             motor = GetComponent<FirstPersonMotor>();
+            interaction = GetComponent<PlayerInteraction>();
             if (cameraPivot != null) standingEyeHeight = cameraPivot.localPosition.y;
             if (hands != null)
             {
@@ -79,9 +81,12 @@ namespace AllAboard.Movement
                 eye.y = Mathf.MoveTowards(eye.y, standingEyeHeight + motor.EyeHeightOffset,
                     crouchCameraSpeed * Time.deltaTime);
                 cameraPivot.localPosition = eye;
-                inertia.Step(cameraPivot.position, cameraPivot.rotation, Time.deltaTime,
+                // Crouch eye-height animation is not movement: do not kick the hands upward.
+                inertia.Step(transform.position, cameraPivot.rotation, Time.deltaTime,
                     movementLag, turnLag, inertiaResponse, maximumInertia, maximumTurnLag);
             }
+            // Resolve the constrained grip with this frame's camera before posing the hands.
+            if (interaction != null) interaction.UpdateHeldPose();
             if (hands == null) return;
             if (heldObject != null)
             {

@@ -111,6 +111,50 @@ namespace AllAboard.Movement.Tests
         }
 
         [UnityTest]
+        public IEnumerator CarryPoseStaysAlignedThroughRepeatedCrouchChanges()
+        {
+            var motor = player.GetComponent<FirstPersonMotor>();
+            var view = player.GetComponent<FirstPersonView>();
+            Transform camera = player.transform.Find("Player Camera");
+            item.Body.interpolation = RigidbodyInterpolation.Interpolate;
+            Assert.That(interaction.TryPickup(item), Is.True);
+            Assert.That(item.Body.interpolation, Is.EqualTo(RigidbodyInterpolation.None));
+            var probe = player.AddComponent<GripPoseProbe>();
+            probe.Camera = camera;
+            probe.Cube = cube.transform;
+            probe.View = view;
+            for (int cycle = 0; cycle < 4; cycle++)
+            {
+                motor.SetCrouched(cycle % 2 == 0);
+                for (float elapsed = 0f; elapsed < 0.25f; elapsed += Time.deltaTime) yield return null;
+            }
+            Assert.That(probe.MaximumGripError, Is.LessThan(0.015f));
+            Assert.That(probe.MaximumVerticalInertia, Is.LessThan(0.005f));
+            interaction.Drop();
+            Assert.That(item.Body.interpolation, Is.EqualTo(RigidbodyInterpolation.Interpolate));
+        }
+
+        [UnityTest]
+        public IEnumerator LookingDownWhileCrouchedKeepsHeldCubeOutOfCameraAndFloor()
+        {
+            player.GetComponent<PlayerInputReader>().enabled = false;
+            player.GetComponent<FirstPersonMotor>().SetCrouched(true);
+            Transform camera = player.transform.Find("Player Camera");
+            for (int i = 0; i < 20; i++) yield return new WaitForFixedUpdate();
+            cube.transform.position = camera.TransformPoint(new Vector3(0f, -0.18f, 1.1f));
+            Physics.SyncTransforms();
+            Assert.That(interaction.TryPickup(item), Is.True);
+            camera.localRotation = Quaternion.Euler(80f, 0f, 0f);
+            for (float elapsed = 0f; elapsed < 0.4f; elapsed += Time.deltaTime) yield return null;
+            Vector3 localCube = camera.InverseTransformPoint(cube.transform.position);
+            Assert.That(localCube.z, Is.GreaterThan(0.5f));
+            Assert.That(cube.GetComponent<BoxCollider>().bounds.min.y, Is.GreaterThanOrEqualTo(-0.01f));
+            Transform hands = camera.Find("Floating Hands");
+            Assert.That(camera.InverseTransformPoint(hands.Find("Left Hand").position).z, Is.GreaterThan(0.5f));
+            Assert.That(camera.InverseTransformPoint(hands.Find("Right Hand").position).z, Is.GreaterThan(0.5f));
+        }
+
+        [UnityTest]
         public IEnumerator HandsReturnToRestInsteadOfFollowingThrownCube()
         {
             Assert.That(interaction.TryPickup(item), Is.True);
@@ -124,6 +168,24 @@ namespace AllAboard.Movement.Tests
             Assert.That(hands.Find("Right Hand").localPosition.z, Is.EqualTo(0.5f).Within(0.08f));
             Assert.That(cube.transform.position.z, Is.GreaterThan(3f));
             Assert.That(interaction.IsHolding, Is.False);
+        }
+    }
+
+    [DefaultExecutionOrder(100)]
+    public sealed class GripPoseProbe : MonoBehaviour
+    {
+        public Transform Camera;
+        public Transform Cube;
+        public FirstPersonView View;
+        public float MaximumGripError { get; private set; }
+        public float MaximumVerticalInertia { get; private set; }
+
+        private void LateUpdate()
+        {
+            if (Camera == null || Cube == null || View == null) return;
+            Vector3 expected = new Vector3(0f, -0.18f, 1.1f) + View.InertiaOffset;
+            MaximumGripError = Mathf.Max(MaximumGripError, Vector3.Distance(Camera.InverseTransformPoint(Cube.position), expected));
+            MaximumVerticalInertia = Mathf.Max(MaximumVerticalInertia, Mathf.Abs(View.InertiaOffset.y));
         }
     }
 }

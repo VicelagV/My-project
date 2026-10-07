@@ -5,6 +5,8 @@ namespace AllAboard.Movement
     [RequireComponent(typeof(CharacterController), typeof(PlayerInputReader))]
     public sealed class FirstPersonMotor : MonoBehaviour
     {
+        public event System.Action Jumped;
+        public event System.Action<float> Landed;
         [SerializeField, Min(0f)] private float walkSpeed = 5f;
         [SerializeField, Min(0f)] private float sprintSpeed = 8f;
         [SerializeField, Min(0f)] private float crouchSpeed = 2.5f;
@@ -74,10 +76,13 @@ namespace AllAboard.Movement
                 verticalVelocity = Mathf.Sqrt(2f * gravity * jumpHeight);
                 jumpBufferRemaining = 0f;
                 jumpConsumed = true;
+                Jumped?.Invoke();
             }
 
             verticalVelocity = Mathf.Max(verticalVelocity - gravity * deltaTime, -50f);
+            float fallSpeed = -verticalVelocity;
             CollisionFlags collision = controller.Move((horizontalVelocity + Vector3.up * verticalVelocity) * deltaTime);
+            if (!grounded && (collision & CollisionFlags.Below) != 0 && fallSpeed > 3f) Landed?.Invoke(fallSpeed);
             if ((collision & CollisionFlags.Above) != 0 && verticalVelocity > 0f) verticalVelocity = 0f;
             if (transform.position.y < respawnBelow) Respawn();
         }

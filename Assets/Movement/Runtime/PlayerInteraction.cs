@@ -5,6 +5,8 @@ namespace AllAboard.Movement
     [RequireComponent(typeof(PlayerInputReader), typeof(FirstPersonView))]
     public sealed class PlayerInteraction : MonoBehaviour
     {
+        public event System.Action PickedUp;
+        public event System.Action<float> Released;
         [SerializeField] private Transform cameraPivot;
         [SerializeField, Min(0.5f)] private float reach = 3f;
         [SerializeField, Min(0.5f)] private float holdDistance = 1.1f;
@@ -80,6 +82,7 @@ namespace AllAboard.Movement
             chargeTime = 0f;
             SetHovered(null);
             view.SetHeldObject(held.transform, held.GripHalfWidth);
+            PickedUp?.Invoke();
             return true;
         }
 
@@ -127,6 +130,7 @@ namespace AllAboard.Movement
             charging = false;
             chargeTime = 0f;
             view.SetHeldObject(null);
+            Released?.Invoke(throwVelocity.magnitude);
         }
 
         private void OnGUI()

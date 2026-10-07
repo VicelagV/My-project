@@ -106,6 +106,21 @@ namespace AllAboard.Movement.Tests
         }
 
         [Test]
+        public void JumpAndLandingFeedbackFiresOnceWithoutRestingSpam()
+        {
+            int jumps = 0;
+            int landings = 0;
+            float landingSpeed = 0f;
+            motor.Jumped += () => jumps++;
+            motor.Landed += speed => { landings++; landingSpeed = speed; };
+            motor.Simulate(Vector2.zero, true, Step);
+            Tick(Vector2.zero, 180);
+            Assert.That(jumps, Is.EqualTo(1));
+            Assert.That(landings, Is.EqualTo(1));
+            Assert.That(landingSpeed, Is.GreaterThan(3f));
+        }
+
+        [Test]
         public void WallBlocksMovement()
         {
             obstruction = GameObject.CreatePrimitive(PrimitiveType.Cube);

@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9c78d985341f454089c5a162b8403d8, type: 3}
+  m_Name: LightPrototypeAudio
+  m_EditorClassIdentifier: AllAboard.Movement::AllAboard.Movement.PrototypeAudioSet
+  footsteps:
+  - {fileID: 8300000, guid: 58722e114480c6d48bae600a21c0f526, type: 3}
+  - {fileID: 8300000, guid: 07430c0084f20b34682ff3a62d9ed2ee, type: 3}
+  - {fileID: 8300000, guid: ce730cda97d465b4db9fe99d506233c2, type: 3}
+  - {fileID: 8300000, guid: e568f739f2e86c54ca1e2b0419c85516, type: 3}
+  - {fileID: 8300000, guid: 9f0a1f627bba05d44941698339c70499, type: 3}
+  landings:
+  - {fileID: 8300000, guid: 8cb9c65d4997a0f4f9c036a189e576e7, type: 3}
+  - {fileID: 8300000, guid: 18816af767beede42bf7d49dc167d895, type: 3}
+  impacts:
+  - {fileID: 8300000, guid: 261b74be389ff874d8ec2d5a2fe8c837, type: 3}
+  - {fileID: 8300000, guid: d63944a96df2a8a48a5c5ef185aa751b, type: 3}
+  - {fileID: 8300000, guid: 568312ef4deaa5a4a99e7eb771b70d90, type: 3}
+  pickup: {fileID: 8300000, guid: e8bbbe41e3c000846a5d76f85dbb4e4f, type: 3}
+  jump: {fileID: 8300000, guid: 553bf6fc7ab328d42968f96407c46ed9, type: 3}
+  throwSound: {fileID: 8300000, guid: 9b017ef63d4781c40acf3d56561ed10e, type: 3}
+  masterVolume: 0.7
+  footstepVolume: 0.2
+  landingVolume: 0.22
+  interactionVolume: 0.14
+  impactVolume: 0.35

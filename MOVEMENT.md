@@ -26,12 +26,17 @@ If the scene is missing, use **All Aboard > Create Movement Playground**.
 - The playground has steps, a ramp, jump blocks, walls, and a low ceiling.
 - The low tunnel on the right near the start requires crouching to pass through.
 - Falling below the playground respawns the player.
+- Light prototype sounds cover footsteps, jump/landing, pickup, throwing, and
+  cube impacts. Crouch footsteps are quieter; resting objects do not chatter.
 
 The reusable player prefab is in `Assets/Movement/Prefabs/PrototypePlayer.prefab`.
 Tune speed, acceleration, jump height, gravity, and jump forgiveness on
 `FirstPersonMotor`. Tune sensitivity and hand motion on `FirstPersonView`.
 Movement Lag, Turn Lag, Inertia Response, and Maximum Inertia control the trailing
 feel. Crouch Height, Crouch Speed, and Crouch Camera Speed control crouching.
+Tune or mute the sounds in `Assets/Movement/Audio/LightPrototypeAudio.asset`.
+Master Volume controls all prototype effects. Source links and CC0 licences are
+in the Audio folder. Footsteps currently use one soft sound set for all surfaces.
 Defaults: 5 metres/second, 1.2 metre jump, 75 degree field of view.
 
 Runtime gameplay is C#. Python is reserved for offline development tools.
@@ -53,6 +58,8 @@ pickup/drop gravity, charged throws, reach limits, and hands returning after a t
 They also cover crouch clearance, camera height, crouch speed, bounded inertia,
 settling after stopping, held-object lag, repeated crouching while holding, and
 looking down near the floor while crouched.
+Audio checks verify the imported clips and prefab references, and that jump/landing
+feedback fires once instead of repeating while the player rests on the ground.
 Run them from **Window > General > Test Runner > PlayMode**.
 The existing SampleScene and build scene list are preserved; open the playground
 explicitly for now.

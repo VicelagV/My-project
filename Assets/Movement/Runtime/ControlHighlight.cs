@@ -9,9 +9,13 @@ namespace AllAboard.Movement
         [SerializeField] private Renderer[] targets;
         private readonly List<Renderer> outlines = new List<Renderer>();
         public bool Highlighted { get; private set; }
-        public void Configure(Material material, Renderer[] geometry) { outlineMaterial = material; targets = geometry; }
-        private void Awake()
+        public void Configure(Material material, Renderer[] geometry)
+        { outlineMaterial = material; targets = geometry; if (Application.isPlaying) BuildOutlines(); }
+        private void Awake() => BuildOutlines();
+        private void BuildOutlines()
         {
+            foreach (Renderer outline in outlines) if (outline != null) Destroy(outline.gameObject);
+            outlines.Clear();
             if (outlineMaterial == null || targets == null) return;
             foreach (Renderer target in targets)
             {

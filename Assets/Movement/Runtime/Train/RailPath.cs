@@ -10,6 +10,8 @@ namespace AllAboard.Train
         private float[] distances;
         public float Length { get { EnsureCache(); return distances[distances.Length - 1]; } }
         public void Configure(Vector3[] nodes) { points = nodes; Rebuild(); }
+        public float ControlPointDistance(int index)
+        { EnsureCache(); return distances[Mathf.Clamp(index * samplesPerSection, 0, distances.Length - 1)]; }
         private void Awake() => Rebuild();
         private void OnValidate() { samples = null; }
         private void EnsureCache() { if (samples == null) Rebuild(); }

@@ -15,6 +15,8 @@ namespace AllAboard.Train
         [SerializeField] private float acceleration = 2.5f;
         [SerializeField] private float brakingForce = 4.5f;
         [SerializeField] private float referenceWeight = 26f;
+        private bool journeyStopped;
+        public void StopJourney(){journeyStopped=true;Speed=0f;Throttle=0f;Braking=true;}
         private TrainResources resources;
         private TrainWeight weight;
         public float Speed { get; private set; }
@@ -26,6 +28,7 @@ namespace AllAboard.Train
         public float TotalWeight { get; private set; }
         public float HeadDistance => headDistance;
         public RailPath Path => path;
+        public IReadOnlyList<TrainCar> Cars => allCars;
         public TrainResources Resources { get { if (resources == null) resources = GetComponent<TrainResources>(); return resources; } }
         public TrainWeight Weight { get { if (weight == null) weight = GetComponent<TrainWeight>(); return weight; } }
         public IEnumerable<TrainCar> Consist
@@ -41,7 +44,7 @@ namespace AllAboard.Train
         public bool Contains(TrainCar sought) { if (sought == null) return false; foreach (var car in Consist) if (car == sought) return true; return false; }
         public void Configure(RailPath rail, TrainCar[] cars, float startDistance = 80f)
         {
-            path = rail; allCars = cars; headDistance = startDistance;
+            journeyStopped=false;path = rail; allCars = cars; headDistance = startDistance;
             for (int i = 0; i < cars.Length; i++)
             {
                 cars[i].Assign(this, headDistance - spacing * i);
@@ -54,6 +57,7 @@ namespace AllAboard.Train
         private void FixedUpdate() => Step(Time.fixedDeltaTime);
         public void Step(float deltaTime)
         {
+            if(journeyStopped){Speed=0f;Throttle=0f;Braking=true;return;}
             if (path == null || allCars == null || deltaTime <= 0f) return;
             Throttle = Mathf.Clamp01(Throttle);
             TotalWeight = Weight.Calculate(this);

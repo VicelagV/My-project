@@ -13,6 +13,7 @@ namespace AllAboard.Train
         public float Steam => steam;
         public float Pressure => pressure;
         public int CoalSupply => coalSupply;
+        public void RegisterSupplyCoal() => coalSupply++;
         public bool Critical { get; private set; }
         public float Performance => steam <= 0.01f ? 0f : steam < 20f ? Mathf.Lerp(0.2f, 1f, steam / 20f) : steam > 80f ? 1.25f : 1f;
         public float BrakeEfficiency => Mathf.Lerp(0.35f, 1f, Mathf.Clamp01(pressure / 10f));

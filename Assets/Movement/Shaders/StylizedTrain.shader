@@ -10,10 +10,11 @@ Shader "AllAboard/Stylized Train"
         Tags { "RenderPipeline"="UniversalPipeline" "RenderType"="Opaque" "Queue"="Geometry" }
         HLSLINCLUDE
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-        CBUFFER_START(UnityPerMaterial)
-            half4 _BaseColor;
-            half4 _EmissionColor;
-        CBUFFER_END
+        // Use ordinary material draws: Unity 6000.6 SRP batching reuses paint
+        // constants between these custom shader materials. Spatial world meshes
+        // already batch geometry without changing renderer-wide project settings.
+        float4 _BaseColor;
+        float4 _EmissionColor;
         ENDHLSL
         Pass
         {
@@ -23,6 +24,7 @@ Shader "AllAboard/Stylized Train"
             HLSLPROGRAM
             #pragma vertex Vert
             #pragma fragment Frag
+            #pragma multi_compile_fog
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
@@ -30,7 +32,7 @@ Shader "AllAboard/Stylized Train"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             struct Attributes { float4 positionOS:POSITION; float3 normalOS:NORMAL; };
-            struct Varyings { float4 positionCS:SV_POSITION; float3 positionWS:TEXCOORD0; half3 normalWS:TEXCOORD1; float4 shadowCoord:TEXCOORD2; };
+            struct Varyings { float4 positionCS:SV_POSITION; float3 positionWS:TEXCOORD0; half3 normalWS:TEXCOORD1; float4 shadowCoord:TEXCOORD2; half fog:TEXCOORD3; };
             Varyings Vert(Attributes input)
             {
                 Varyings output;
@@ -38,6 +40,7 @@ Shader "AllAboard/Stylized Train"
                 output.positionCS=TransformWorldToHClip(output.positionWS);
                 output.normalWS=TransformObjectToWorldNormal(input.normalOS);
                 output.shadowCoord=TransformWorldToShadowCoord(output.positionWS);
+                output.fog=ComputeFogFactor(output.positionCS.z);
                 return output;
             }
             half4 Frag(Varyings input):SV_Target
@@ -55,7 +58,7 @@ Shader "AllAboard/Stylized Train"
                     lighting+=lamp.color*saturate(dot(normal,lamp.direction))*lamp.distanceAttenuation*lamp.shadowAttenuation;
                 }
                 #endif
-                return half4(_BaseColor.rgb*lighting+_EmissionColor.rgb,_BaseColor.a);
+                return half4(MixFog(_BaseColor.rgb*lighting+_EmissionColor.rgb,input.fog),_BaseColor.a);
             }
             ENDHLSL
         }

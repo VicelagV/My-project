@@ -95,3 +95,5 @@ cars, coal storage/pickup/firebox, precise Steam balance, one-hand lever input a
 camera lock, brake strength, button/valve and ladder hand poses, thrown-coal intake,
 hover outlines, gauge needles, throttle limits, sound response, couplers, weight and item physics.
 The existing movement and object regression suite remains included.
+
+The separate seeded route playground and its controls are documented in [ROUTES.md](ROUTES.md).

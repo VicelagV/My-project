@@ -40,6 +40,7 @@ namespace AllAboard.Movement
             {
                 interaction.PickedUp += OnPickup;
                 interaction.Released += OnRelease;
+                interaction.Welded += OnPickup;
             }
         }
 
@@ -52,6 +53,7 @@ namespace AllAboard.Movement
             {
                 interaction.PickedUp -= OnPickup;
                 interaction.Released -= OnRelease;
+                interaction.Welded -= OnPickup;
             }
         }
 

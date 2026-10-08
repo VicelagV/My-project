@@ -30,7 +30,7 @@ namespace AllAboard.Movement
         private Vector3 spawnPosition;
         private float standingHeight;
         private Vector3 standingCenter;
-        private MovingPlatform support;
+        private Rigidbody support;
         private Vector3 supportLocalPosition;
         private Vector3 supportWorldPosition;
         private Quaternion supportRotation;
@@ -71,7 +71,9 @@ namespace AllAboard.Movement
             {
                 Vector3 next = support.transform.TransformPoint(supportLocalPosition);
                 Vector3 delta = next - supportWorldPosition;
-                supportVelocity = delta / deltaTime;
+                // Dynamic contact/interpolation can change pose between render frames.
+                // Use the physics velocity rather than dividing that jump by a tiny frame time.
+                supportVelocity = support.GetPointVelocity(transform.position);
                 controller.Move(delta);
                 SupportDisplacement = transform.position - frameStart;
                 Quaternion turn = support.transform.rotation * Quaternion.Inverse(supportRotation);
@@ -118,7 +120,7 @@ namespace AllAboard.Movement
             if (!grounded && (collision & CollisionFlags.Below) != 0 && fallSpeed > 3f) Landed?.Invoke(fallSpeed);
             if ((collision & CollisionFlags.Above) != 0 && verticalVelocity > 0f) verticalVelocity = 0f;
             // Pickup collision-pair changes can clear Below for a frame; probe the actual ground.
-            MovingPlatform nextSupport = verticalVelocity <= 0f ? FindSupport() : null;
+            Rigidbody nextSupport = verticalVelocity <= 0f ? FindSupport() : null;
             if (support != null && nextSupport == null) airMomentum = supportVelocity;
             support = nextSupport;
             if ((collision & CollisionFlags.Below) != 0 && verticalVelocity <= 0f) airMomentum = Vector3.zero;
@@ -157,18 +159,20 @@ namespace AllAboard.Movement
             return true;
         }
 
-        private MovingPlatform FindSupport()
+        private Rigidbody FindSupport()
         {
             Vector3 feet = transform.TransformPoint(controller.center - Vector3.up * (controller.height * 0.5f));
             float radius = Mathf.Max(0.05f, controller.radius - controller.skinWidth);
-            MovingPlatform nearest = null;
+            Rigidbody nearest = null;
             float distance = float.PositiveInfinity;
             foreach (RaycastHit hit in Physics.SphereCastAll(feet + Vector3.up * (radius + 0.08f), radius,
                 Vector3.down, 0.2f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
             {
                 if (IgnorePlayerCollision(hit.collider) || Vector3.Dot(hit.normal, Vector3.up) < 0.6f || hit.distance >= distance) continue;
                 distance = hit.distance;
-                nearest = hit.collider.GetComponentInParent<MovingPlatform>();
+                // Follow the body directly: a loose or welded cube can be the rider's
+                // immediate support even when its own motion comes from a platform.
+                nearest = hit.collider.attachedRigidbody;
             }
             return nearest;
         }

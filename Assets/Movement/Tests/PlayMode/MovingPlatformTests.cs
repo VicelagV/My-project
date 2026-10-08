@@ -125,6 +125,31 @@ namespace AllAboard.Movement.Tests
         }
 
         [UnityTest]
+        public IEnumerator StandingOnLooseCubeRidesItsMotionAndJumpRetainsMomentum()
+        {
+            player.SetActive(false);
+            SpawnCube(new Vector3(1f, 0.48f, 0f));
+            yield return Wait(0.5f);
+            player.transform.position = cube.transform.position + Vector3.up * 0.29f;
+            player.SetActive(true);
+            Physics.SyncTransforms();
+            yield return Wait(0.2f);
+            Vector3 local = cube.transform.InverseTransformPoint(player.transform.position);
+            Vector3 start = player.transform.position;
+            yield return Wait(0.8f);
+            Assert.That(Vector3.Distance(player.transform.position, start), Is.GreaterThan(0.5f));
+            Assert.That(Vector3.Distance(cube.transform.InverseTransformPoint(player.transform.position), local), Is.LessThan(0.12f));
+            Assert.That(motor.Grounded, Is.True);
+            float startX = player.transform.position.x;
+            float startY = player.transform.position.y;
+            driver.Jump = true;
+            yield return Wait(0.2f);
+            Assert.That(player.transform.position.x - startX, Is.GreaterThan(0.15f));
+            Assert.That(player.transform.position.y - startY, Is.GreaterThan(0.7f));
+            Assert.That(motor.Grounded, Is.False);
+        }
+
+        [UnityTest]
         public IEnumerator LookingDownWithCubeWhileCrouchedKeepsRiderAttached()
         {
             driver.Crouch = true;

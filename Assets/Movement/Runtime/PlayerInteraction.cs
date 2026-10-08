@@ -7,6 +7,7 @@ namespace AllAboard.Movement
     {
         public event System.Action PickedUp;
         public event System.Action<float> Released;
+        public event System.Action Welded;
         [SerializeField] private Transform cameraPivot;
         [SerializeField, Min(0.5f)] private float reach = 3f;
         [SerializeField, Min(0.5f)] private float holdDistance = 1.1f;
@@ -60,6 +61,7 @@ namespace AllAboard.Movement
             }
             if (held != null)
             {
+                if (input.WeldPressed && TryWeld()) return;
                 if (input.DropPressed) { charging = true; chargeTime = 0f; }
                 if (charging && input.DropHeld) chargeTime += Time.deltaTime;
                 if (charging && input.DropReleased) ReleaseCharged(chargeTime);
@@ -170,6 +172,42 @@ namespace AllAboard.Movement
         public void Drop()
         {
             Release(Vector3.zero);
+        }
+
+        public bool TryWeld()
+        {
+            if (held == null || cameraPivot == null) return false;
+            UpdateHeldPose();
+            const float weldReach = 0.15f;
+            RaycastHit nearest = default;
+            bool found = false;
+            foreach (RaycastHit hit in Physics.BoxCastAll(held.transform.position, held.HalfExtents,
+                cameraPivot.forward, held.transform.rotation, weldReach, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            {
+                if (hit.collider == playerCollider || hit.collider.attachedRigidbody == held.Body ||
+                    (found && hit.distance >= nearest.distance)) continue;
+                nearest = hit;
+                found = true;
+            }
+            if (!found) return false;
+            Vector3 position = held.transform.position + cameraPivot.forward * Mathf.Max(0f, nearest.distance - 0.005f);
+            // Reject a snap that would bury the cube in a neighbouring surface at a corner.
+            foreach (Collider other in Physics.OverlapBox(position, held.HalfExtents, held.transform.rotation,
+                Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            {
+                if (other == playerCollider || other.attachedRigidbody == held.Body) continue;
+                if (Physics.ComputePenetration(held.Shape, position, held.transform.rotation, other,
+                    other.transform.position, other.transform.rotation, out _, out float depth) && depth > 0.002f) return false;
+            }
+            held.Body.position = position;
+            held.transform.position = position;
+            if (!held.WeldTo(nearest.collider, nearest.point)) return false;
+            held = null;
+            charging = false;
+            chargeTime = 0f;
+            view.SetHeldObject(null);
+            Welded?.Invoke();
+            return true;
         }
 
         public void ReleaseCharged(float secondsHeld)

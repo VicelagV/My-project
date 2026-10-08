@@ -11,6 +11,14 @@ If the scene is missing, use **All Aboard > Create Movement Playground**.
   Sprinting while crouched stays at crouch speed (2.5 metres/second).
 - Aim the center dot at the blue cube: a white outline indicates it can be picked up.
 - E: pick up. The dot disappears and the hands grip either side of the cube.
+- German Z (physical Y on a US keyboard): weld the held cube to the solid surface
+  you are holding it towards. Bring its face within 15 cm of the surface first.
+  It snaps to a small contact gap, the hands let go, and the center dot returns.
+  E picks up a welded cube again and removes its weld. Pressing weld away from
+  a surface keeps the cube in your hands.
+  Welds use fixed physics joints, including connections to moving bodies;
+  a cube welded to the platform moves and turns with it. Removing the welded
+  surface releases the cube. Welds currently last for the current Play session.
 - Tap Q: drop. Hold Q: charge the small bar; release Q: throw in the look direction.
 - After dropping or throwing, the hands return to rest and do not follow the cube.
 - Full throw charge takes 1.2 seconds. Charge changes launch speed from 3 to 12 m/s.
@@ -37,6 +45,9 @@ If the scene is missing, use **All Aboard > Create Movement Playground**.
   Standing riders follow its movement and yaw. Jumping or stepping off preserves
   its velocity; dropping or throwing adds that velocity to the cube as well.
   Loose cubes ride through Rigidbody contact and friction, without parenting.
+  Standing on a loose or welded cube follows that cube's motion too, including
+  when it is riding on the platform. Jump momentum uses the support body's
+  physical point velocity, avoiding spikes when contact changes between frames.
   Standing still on it does not trigger footsteps or movement lag in the hands.
 - Falling below the playground respawns the player.
 - Light prototype sounds cover footsteps, jump/landing, pickup, throwing, and
@@ -79,6 +90,9 @@ and standing automatically after leaving a moving low roof.
 Regression checks also cover crouched floor-facing pickup on a moving deck,
 pickup/drop over a thin suspended floor, and sprinting into a wall while carrying,
 then sliding sideways and backing away without folding the hands into the camera.
+Welding checks cover the German keyboard binding, static and moving attachments,
+re-pickup, rejecting distant surfaces, and falling after removal of the welded
+wall. Rider checks include standing on loose and welded cubes and jumping off.
 Audio checks verify the imported clips and prefab references, and that jump/landing
 feedback fires once instead of repeating while the player rests on the ground.
 Run them from **Window > General > Test Runner > PlayMode**.

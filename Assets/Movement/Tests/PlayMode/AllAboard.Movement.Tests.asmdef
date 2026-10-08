@@ -1,5 +1,5 @@
 {
     "name": "AllAboard.Movement.Tests",
-    "references": ["AllAboard.Movement"],
+    "references": ["AllAboard.Movement", "Unity.InputSystem"],
     "optionalUnityReferences": ["TestAssemblies"]
 }

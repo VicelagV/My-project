@@ -13,7 +13,10 @@ namespace AllAboard.Movement
         private Coroutine restoreCollision;
         private CollisionDetectionMode releasedCollisionMode;
         private RigidbodyInterpolation releasedInterpolation;
+        private FixedJoint weld;
+        private Collider weldedSurface;
         public bool IsHeld { get; private set; }
+        public bool IsWelded => weld != null;
         public Rigidbody Body => body;
         public BoxCollider Shape => box;
         public float Radius => Vector3.Scale(box.size, transform.lossyScale).magnitude * 0.5f;
@@ -37,6 +40,7 @@ namespace AllAboard.Movement
         public bool BeginHold(Collider playerCollider)
         {
             if (IsHeld) return false;
+            RemoveWeld();
             if (restoreCollision != null)
             {
                 StopCoroutine(restoreCollision);
@@ -69,6 +73,37 @@ namespace AllAboard.Movement
             body.WakeUp();
             // A drop aimed down can overlap the player: restore collision after separation.
             if (holder != null && isActiveAndEnabled) restoreCollision = StartCoroutine(RestorePlayerCollision());
+        }
+
+        public bool WeldTo(Collider surface, Vector3 contactPoint)
+        {
+            if (!IsHeld || surface == null || surface.isTrigger || surface.attachedRigidbody == body || surface == holder) return false;
+            Rigidbody connected = surface.attachedRigidbody;
+            Release(connected != null ? connected.GetPointVelocity(contactPoint) : Vector3.zero);
+            body.angularVelocity = connected != null ? connected.angularVelocity : Vector3.zero;
+            weldedSurface = surface;
+            weld = gameObject.AddComponent<FixedJoint>();
+            weld.autoConfigureConnectedAnchor = false;
+            weld.connectedBody = connected;
+            weld.anchor = transform.InverseTransformPoint(contactPoint);
+            weld.connectedAnchor = connected != null ? connected.transform.InverseTransformPoint(contactPoint) : contactPoint;
+            weld.enableCollision = false;
+            weld.breakForce = weld.breakTorque = Mathf.Infinity;
+            return true;
+        }
+
+        private void RemoveWeld()
+        {
+            if (weld != null) Destroy(weld);
+            weld = null;
+            weldedSurface = null;
+            if (body != null && !body.isKinematic) body.WakeUp();
+        }
+
+        private void FixedUpdate()
+        {
+            // A static-wall weld must not leave an invisible world anchor if the wall disappears.
+            if (weld != null && weldedSurface == null) RemoveWeld();
         }
 
         private IEnumerator RestorePlayerCollision()

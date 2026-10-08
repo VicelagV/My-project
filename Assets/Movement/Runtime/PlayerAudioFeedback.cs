@@ -11,7 +11,6 @@ namespace AllAboard.Movement
         private PlayerInteraction interaction;
         private AudioSource steps;
         private AudioSource actions;
-        private Vector3 previousPosition;
         private float stepDistance;
         private int lastStep = -1;
         private int lastLanding = -1;
@@ -30,7 +29,6 @@ namespace AllAboard.Movement
                 source.spatialBlend = 0f;
                 source.dopplerLevel = 0f;
             }
-            previousPosition = transform.position;
         }
 
         private void OnEnable()
@@ -59,9 +57,7 @@ namespace AllAboard.Movement
 
         private void LateUpdate()
         {
-            Vector3 delta = transform.position - previousPosition;
-            previousPosition = transform.position;
-            float distance = new Vector2(delta.x, delta.z).magnitude;
+            float distance = motor.RelativeGroundDistance;
             if (!motor.Grounded || distance > 4f) { stepDistance = 0f; return; }
             if (distance < 0.0001f || sounds == null) return;
             stepDistance += distance;

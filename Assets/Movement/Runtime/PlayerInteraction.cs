@@ -125,7 +125,8 @@ namespace AllAboard.Movement
         private void Release(Vector3 throwVelocity)
         {
             if (held == null) return;
-            held.Release((playerCollider != null ? playerCollider.velocity : Vector3.zero) + throwVelocity);
+            var motor = GetComponent<FirstPersonMotor>();
+            held.Release((motor != null ? motor.WorldVelocity : Vector3.zero) + throwVelocity);
             held = null;
             charging = false;
             chargeTime = 0f;

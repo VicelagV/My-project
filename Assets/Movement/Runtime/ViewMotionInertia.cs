@@ -15,7 +15,7 @@ namespace AllAboard.Movement
 
         public void Step(Vector3 position, Quaternion rotation, float deltaTime,
             float movementLag = 0.015f, float turnLag = 0.0003f, float responseTime = 0.1f,
-            float maximumOffset = 0.12f, float maximumAngle = 5f)
+            float maximumOffset = 0.12f, float maximumAngle = 5f, Vector3 carrierDisplacement = default)
         {
             if (deltaTime <= 0f) return;
             if (!initialized || (position - previousPosition).sqrMagnitude > 25f)
@@ -26,7 +26,7 @@ namespace AllAboard.Movement
                 initialized = true;
                 return;
             }
-            Vector3 localVelocity = Quaternion.Inverse(rotation) * ((position - previousPosition) / deltaTime);
+            Vector3 localVelocity = Quaternion.Inverse(rotation) * ((position - previousPosition - carrierDisplacement) / deltaTime);
             Vector3 turn = (Quaternion.Inverse(previousRotation) * rotation).eulerAngles;
             Vector2 turnRate = new Vector2(Mathf.DeltaAngle(0f, turn.x), Mathf.DeltaAngle(0f, turn.y)) / deltaTime;
             Vector3 target = -localVelocity * movementLag + new Vector3(-turnRate.y, turnRate.x, 0f) * turnLag;

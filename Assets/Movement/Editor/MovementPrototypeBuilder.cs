@@ -119,6 +119,7 @@ namespace AllAboard.Editor
             ObjectPhysicsPrototypeBuilder.Apply();
             MovementRefinementBuilder.Apply();
             AudioPrototypeBuilder.Apply();
+            PlatformPrototypeBuilder.Apply();
         }
 
         private static Material Material(string name, Color color)

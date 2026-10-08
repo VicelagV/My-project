@@ -29,6 +29,15 @@ namespace AllAboard.Movement
         private Vector3 spawnPosition;
         private float standingHeight;
         private Vector3 standingCenter;
+        private MovingPlatform support;
+        private Vector3 supportLocalPosition;
+        private Vector3 supportWorldPosition;
+        private Quaternion supportRotation;
+        private Vector3 supportVelocity;
+        private Vector3 airMomentum;
+        public Vector3 WorldVelocity { get; private set; }
+        public Vector3 SupportDisplacement { get; private set; }
+        public float RelativeGroundDistance { get; private set; }
         public bool IsCrouched { get; private set; }
         public float EyeHeightOffset => controller.height - standingHeight;
         public float HorizontalSpeed => horizontalVelocity.magnitude;
@@ -45,7 +54,7 @@ namespace AllAboard.Movement
 
         private void Update()
         {
-            if (input.HasControl && input.CrouchPressed) SetCrouched(!IsCrouched);
+            SetCrouched(input.HasControl && input.CrouchHeld);
             Simulate(input.HasControl ? input.Move : Vector2.zero, input.HasControl && input.JumpPressed,
                 Time.deltaTime, input.HasControl && input.SprintHeld);
         }
@@ -54,7 +63,20 @@ namespace AllAboard.Movement
         public void Simulate(Vector2 movement, bool jumpPressed, float deltaTime, bool sprint = false)
         {
             if (deltaTime <= 0f) return;
-            bool grounded = controller.isGrounded && verticalVelocity <= 0f;
+            Vector3 frameStart = transform.position;
+            bool previouslyGrounded = controller.isGrounded;
+            SupportDisplacement = Vector3.zero;
+            if (support != null)
+            {
+                Vector3 next = support.transform.TransformPoint(supportLocalPosition);
+                Vector3 delta = next - supportWorldPosition;
+                supportVelocity = delta / deltaTime;
+                controller.Move(delta);
+                SupportDisplacement = transform.position - frameStart;
+                Quaternion turn = support.transform.rotation * Quaternion.Inverse(supportRotation);
+                transform.Rotate(Vector3.up, Mathf.DeltaAngle(0f, turn.eulerAngles.y), Space.World);
+            }
+            bool grounded = (previouslyGrounded || FindSupport() != null) && verticalVelocity <= 0f;
             groundGraceRemaining = Mathf.Max(0f, groundGraceRemaining - deltaTime);
             jumpBufferRemaining = Mathf.Max(0f, jumpBufferRemaining - deltaTime);
             if (grounded)
@@ -62,6 +84,7 @@ namespace AllAboard.Movement
                 groundGraceRemaining = coyoteTime;
                 jumpConsumed = false;
                 verticalVelocity = -2f;
+                airMomentum = Vector3.zero;
             }
 
             movement = Vector2.ClampMagnitude(movement, 1f);
@@ -74,6 +97,11 @@ namespace AllAboard.Movement
             if (!jumpConsumed && (grounded || groundGraceRemaining > 0f) && (jumpPressed || jumpBufferRemaining > 0f))
             {
                 verticalVelocity = Mathf.Sqrt(2f * gravity * jumpHeight);
+                if (support != null)
+                {
+                    airMomentum = supportVelocity;
+                    support = null;
+                }
                 jumpBufferRemaining = 0f;
                 jumpConsumed = true;
                 Jumped?.Invoke();
@@ -81,9 +109,23 @@ namespace AllAboard.Movement
 
             verticalVelocity = Mathf.Max(verticalVelocity - gravity * deltaTime, -50f);
             float fallSpeed = -verticalVelocity;
-            CollisionFlags collision = controller.Move((horizontalVelocity + Vector3.up * verticalVelocity) * deltaTime);
+            Vector3 relativeStart = transform.position;
+            CollisionFlags collision = controller.Move((horizontalVelocity + airMomentum + Vector3.up * verticalVelocity) * deltaTime);
             if (!grounded && (collision & CollisionFlags.Below) != 0 && fallSpeed > 3f) Landed?.Invoke(fallSpeed);
             if ((collision & CollisionFlags.Above) != 0 && verticalVelocity > 0f) verticalVelocity = 0f;
+            MovingPlatform nextSupport = verticalVelocity <= 0f && (collision & CollisionFlags.Below) != 0 ? FindSupport() : null;
+            if (support != null && nextSupport == null) airMomentum = supportVelocity;
+            support = nextSupport;
+            if ((collision & CollisionFlags.Below) != 0 && verticalVelocity <= 0f) airMomentum = Vector3.zero;
+            if (support != null)
+            {
+                supportLocalPosition = support.transform.InverseTransformPoint(transform.position);
+                supportWorldPosition = transform.position;
+                supportRotation = support.transform.rotation;
+            }
+            WorldVelocity = (transform.position - frameStart) / deltaTime;
+            Vector3 relativeMove = transform.position - relativeStart;
+            RelativeGroundDistance = new Vector2(relativeMove.x, relativeMove.z).magnitude;
             if (transform.position.y < respawnBelow) Respawn();
         }
 
@@ -97,13 +139,33 @@ namespace AllAboard.Movement
             verticalVelocity = 0f;
             groundGraceRemaining = jumpBufferRemaining = 0f;
             jumpConsumed = false;
+            support = null;
+            supportVelocity = airMomentum = WorldVelocity = SupportDisplacement = Vector3.zero;
+            RelativeGroundDistance = 0f;
         }
 
         public bool SetCrouched(bool crouched)
         {
+            if (crouched == IsCrouched) return true;
             if (!crouched && IsCrouched && !CanStand()) return false;
             ApplyStance(crouched);
             return true;
+        }
+
+        private MovingPlatform FindSupport()
+        {
+            Vector3 feet = transform.TransformPoint(controller.center - Vector3.up * (controller.height * 0.5f));
+            float radius = Mathf.Max(0.05f, controller.radius - controller.skinWidth);
+            MovingPlatform nearest = null;
+            float distance = float.PositiveInfinity;
+            foreach (RaycastHit hit in Physics.SphereCastAll(feet + Vector3.up * (radius + 0.08f), radius,
+                Vector3.down, 0.2f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            {
+                if (hit.collider == controller || Vector3.Dot(hit.normal, Vector3.up) < 0.6f || hit.distance >= distance) continue;
+                distance = hit.distance;
+                nearest = hit.collider.GetComponentInParent<MovingPlatform>();
+            }
+            return nearest;
         }
 
         private bool CanStand()

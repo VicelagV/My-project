@@ -21,7 +21,7 @@ namespace AllAboard.Movement
         public bool DropHeld => drop.IsPressed();
         public bool DropPressed => drop.WasPressedThisFrame();
         public bool DropReleased => drop.WasReleasedThisFrame();
-        public bool CrouchPressed => crouch.WasPressedThisFrame();
+        public bool CrouchHeld => crouch.IsPressed();
         public bool HasControl => Application.isFocused && Cursor.lockState == CursorLockMode.Locked;
 
         private void Awake()

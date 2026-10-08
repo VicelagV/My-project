@@ -5,8 +5,9 @@ If the scene is missing, use **All Aboard > Create Movement Playground**.
 
 - WASD: walk; mouse: look; Space: jump.
 - Hold either Shift key to sprint (8 metres/second).
-- C toggles crouch: slower movement, a lower camera, and a shorter collider.
-  Standing is blocked under low ceilings; leave the tunnel and press C again.
+- Hold C to crouch: slower movement, a lower camera, and a shorter collider.
+  Release C to stand. Under low ceilings you stay crouched until there is room;
+  standing then resumes automatically without pressing C again.
   Sprinting while crouched stays at crouch speed (2.5 metres/second).
 - Aim the center dot at the blue cube: a white outline indicates it can be picked up.
 - E: pick up. The dot disappears and the hands grip either side of the cube.
@@ -25,6 +26,13 @@ If the scene is missing, use **All Aboard > Create Movement Playground**.
   on `Assets/Movement/Materials/HandOutline.mat` (zero thickness hides the border).
 - The playground has steps, a ramp, jump blocks, walls, and a low ceiling.
 - The low tunnel on the right near the start requires crouching to pass through.
+- Beyond the jump blocks, the orange platform moves sideways and gently turns.
+  Jump onto it from the ground or landing block. Try walking, jumping, crouching
+  under its low roof, and carrying or dropping its second blue cube.
+  Standing riders follow its movement and yaw. Jumping or stepping off preserves
+  its velocity; dropping or throwing adds that velocity to the cube as well.
+  Loose cubes ride through Rigidbody contact and friction, without parenting.
+  Standing still on it does not trigger footsteps or movement lag in the hands.
 - Falling below the playground respawns the player.
 - Light prototype sounds cover footsteps, jump/landing, pickup, throwing, and
   cube impacts. Crouch footsteps are quieter; resting objects do not chatter.
@@ -43,9 +51,11 @@ Runtime gameplay is C#. Python is reserved for offline development tools.
 The video reference informs the first-person presentation; these controls are
 a starting point, not a measured recreation of its movement.
 
-This is a single-player movement and object physics foundation. Train platform
-movement, inherited train velocity, networking, and Steam integration are future
-work. Hands are cosmetic and have no colliders. Character movement uses Unity's
+This is a single-player movement and object physics foundation. The moving test
+platform provides the initial support and momentum system; a full train,
+networking, and Steam integration are future work.
+Tune Travel, Period, and Yaw Amplitude on `MovingTestPlatform.prefab`.
+Hands are cosmetic and have no colliders. Character movement uses Unity's
 CharacterController; the player does not push Rigidbody objects by walking yet.
 Loose items use Rigidbody gravity and collision. The cube has mass, friction,
 slight bounce, damping, and continuous collision detection. Carrying constrains
@@ -58,6 +68,9 @@ pickup/drop gravity, charged throws, reach limits, and hands returning after a t
 They also cover crouch clearance, camera height, crouch speed, bounded inertia,
 settling after stopping, held-object lag, repeated crouching while holding, and
 looking down near the floor while crouched.
+Moving-platform checks cover passive translation and rotation, jump momentum,
+loose-cube friction, carrying through crouch changes, inherited drop velocity,
+and standing automatically after leaving a moving low roof.
 Audio checks verify the imported clips and prefab references, and that jump/landing
 feedback fires once instead of repeating while the player rests on the ground.
 Run them from **Window > General > Test Runner > PlayMode**.

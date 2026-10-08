@@ -83,7 +83,7 @@ namespace AllAboard.Movement
                 cameraPivot.localPosition = eye;
                 // Crouch eye-height animation is not movement: do not kick the hands upward.
                 inertia.Step(transform.position, cameraPivot.rotation, Time.deltaTime,
-                    movementLag, turnLag, inertiaResponse, maximumInertia, maximumTurnLag);
+                    movementLag, turnLag, inertiaResponse, maximumInertia, maximumTurnLag, motor.SupportDisplacement);
             }
             // Resolve the constrained grip with this frame's camera before posing the hands.
             if (interaction != null) interaction.UpdateHeldPose();

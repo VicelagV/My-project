@@ -17,6 +17,7 @@ namespace AllAboard.Train
         [SerializeField] private TrainCar rear;
         private Rigidbody body;
         private float wheelAngle;
+        private TrainWheel[] detailedWheels;
         public CarKind Kind => kind;
         public float BaseWeight => baseWeight;
         public float Distance => distance;
@@ -49,6 +50,8 @@ namespace AllAboard.Train
             else { Body.MovePosition(position); Body.MoveRotation(rotation); }
             wheelAngle += travelled / 0.4f * Mathf.Rad2Deg;
             if (wheels != null) foreach (Transform wheel in wheels) if (wheel != null) wheel.localRotation = Quaternion.Euler(wheelAngle, 0f, 90f);
+            if (detailedWheels == null) detailedWheels = GetComponentsInChildren<TrainWheel>();
+            foreach (TrainWheel wheel in detailedWheels) wheel.Advance(travelled);
             if (rearBridge != null) rearBridge.SetActive(rear != null);
             if (roofBridge != null) roofBridge.SetActive(rear != null && rear.Kind != CarKind.Coal && kind != CarKind.Coal);
         }

@@ -12,6 +12,7 @@ namespace AllAboard.Train
         public FirstPersonMotor Occupant => occupant != null && occupant.IsSeated ? occupant : null;
         public override string Prompt => Occupant == null ? "E: sit in conductor's seat" : "E: stand up";
         public void Configure(TrainCar owner) => car = owner;
+        public void ConfigureFeet(Vector3 position) => feet = position;
         public override bool Interact(PlayerInteraction actor)
         {
             if (actor == null || car == null) return false;

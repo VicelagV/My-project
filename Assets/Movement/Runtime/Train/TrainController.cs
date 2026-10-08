@@ -64,7 +64,7 @@ namespace AllAboard.Train
             else if (Throttle < 0.01f || performance <= 0f) { target = 0f; force = 0.35f; }
             Speed = Mathf.MoveTowards(Speed, target, force * deltaTime);
             float requested = headDistance + Speed * deltaTime;
-            headDistance = Mathf.Clamp(requested, (ConnectedCount - 1) * spacing + 5f, path.Length - 5f);
+            headDistance = Mathf.Clamp(requested, (ConnectedCount - 1) * spacing + 5f, path.Length - 9f);
             if (Mathf.Abs(headDistance - requested) > 0.0001f) { Speed = 0f; Braking = true; }
             Resources.Step(Throttle, Braking, deltaTime);
             int index = 0;

@@ -68,6 +68,7 @@ namespace AllAboard.Editor
                 AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/TrainSteamLoop.wav"),
                 AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/TrainRollingLoop.wav"));
             DamageableComponent speedometer = AddCabControls(controller, cars[0]);
+            TrainAppearanceBuilder.DressCab(cars[0]);
             foreach (TrainCar car in cars)
                 foreach (PrototypeInteractable control in car.GetComponentsInChildren<PrototypeInteractable>())
                 {
@@ -175,6 +176,7 @@ namespace AllAboard.Editor
             GameObject bridge = Box(root.transform, "Rear Walkway", new Vector3(0f, 1.05f, -4.85f), new Vector3(1.5f, 0.2f, 0.9f), deck);
             GameObject roofBridge = kind == CarKind.Coal ? null : Box(root.transform, "Rear Roof Walkway", new Vector3(0f, 4f, -4.85f), new Vector3(1.5f, 0.2f, 0.9f), deck);
             car.Configure(kind, weight, bridge, roofBridge, wheelList.ToArray());
+            TrainAppearanceBuilder.DecorateCar(root, kind);
             prefab = PrefabUtility.SaveAsPrefabAsset(root, file); Object.DestroyImmediate(root); return prefab;
         }
 

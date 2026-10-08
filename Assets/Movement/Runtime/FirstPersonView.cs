@@ -127,7 +127,8 @@ namespace AllAboard.Movement
             bobPhase += Time.deltaTime * motor.HorizontalSpeed * 2.2f;
             Vector3 bob = new Vector3(Mathf.Sin(bobPhase), Mathf.Sin(bobPhase * 2f), 0f) * handBob * strength;
             Vector3 sway = new Vector3(-delta.x, -delta.y, 0f) * handSway;
-            hands.localPosition = Vector3.Lerp(hands.localPosition, handRestPosition + bob + sway + inertia.Offset,
+            Vector3 seatRest = motor.IsSeated ? Vector3.down * 0.2f : Vector3.zero;
+            hands.localPosition = Vector3.Lerp(hands.localPosition, handRestPosition + seatRest + bob + sway + inertia.Offset,
                 1f - Mathf.Exp(-14f * Time.deltaTime));
             hands.localRotation = InertiaRotation;
             if (motor.IsClimbing && ladderCarrier != null)

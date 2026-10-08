@@ -82,12 +82,13 @@ Python offline tool `Tools/create_train_sounds.py`.
 
 ## Technical scope
 
-Runtime gameplay is C#. Single-player prototype with primitive geometry and a
+Runtime gameplay is C#. Single-player prototype with original faceted train meshes and a
 straight/curved test railway. Rail motion, resources, couplers, weight, sound,
 lever input and damage are separate modules under `Assets/Movement/Runtime/Train`.
 The speedometer can still be broken with four presses of its test button; it then
-reads BROKEN. Networking, Steam publishing, repairs and final train artwork are
-future work. The supplied train screenshots guide later visual design.
+reads BROKEN. Networking, Steam publishing and repairs remain future work.
+The train visual pass follows the supplied screenshots and movement video; see
+[TRAIN_ART.md](TRAIN_ART.md) for the mesh pass, cab windows and mounted label plaques.
 
 Run **Window > General > Test Runner > PlayMode**. Checks cover movement on moving
 cars, coal storage/pickup/firebox, precise Steam balance, one-hand lever input and

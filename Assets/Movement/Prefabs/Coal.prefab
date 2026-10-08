@@ -40,7 +40,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3527850369862651091}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: 4300000, guid: a0e6508c5a18d984081a17f4ed0d7e22, type: 2}
 --- !u!23 &5904746727722808510
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -137,7 +137,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7347126817465274140}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: 4300000, guid: a0e6508c5a18d984081a17f4ed0d7e22, type: 2}
 --- !u!65 &6415899196190950046
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -245,7 +245,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7264a84bd9420214089aafb4f2cd1aeb, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: AllAboard.Movement::AllAboard.Movement.PickupObject
   hoverOutline: {fileID: 5904746727722808510}
 --- !u!82 &5148982763616986347
@@ -355,7 +355,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fa585dd070f0dc8408eaacf87f064ac4, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: AllAboard.Movement::AllAboard.Movement.ObjectImpactAudio
   sounds: {fileID: 11400000, guid: b229f24a1ef120a4195fabeae9f751ec, type: 2}
   minimumImpactSpeed: 0.8
@@ -370,5 +370,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 44a37c91652ac3249978b7583c22add9, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: AllAboard.Movement::AllAboard.Train.CoalItem
+  storageCar: {fileID: 0}
+  freeInterpolation: 1
+  freeCollisionMode: 2

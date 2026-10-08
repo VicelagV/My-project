@@ -73,8 +73,9 @@ namespace AllAboard.Train
         public bool CanChange(string node)
         {
             if(Mathf.Abs(train.Speed)>0.1f)return false;
-            if(nodeIndices.TryGetValue(node,out int index))
-                foreach(var car in train.Cars)if(car.Distance+9f>=railPath.ControlPointDistance(index)-5f)return false;
+            if(nodeIndices.ContainsKey(node))
+                foreach(var car in train.Cars)
+                    if(car.Distance+(car.Kind==CarKind.Locomotive?8.8f:4.55f)>=IntersectionDistance(node))return false;
             return true;
         }
         public bool Choose(string node,int option)
@@ -82,6 +83,16 @@ namespace AllAboard.Train
             var exits=Network.Outgoing(node).ToArray();if(DayEnded||option<0||option>=exits.Length||!CanChange(node))return false;
             choices[node]=option;railPath.Configure(PlanPoints(out nodeIndices));return true;
         }
+        // Catmull-Rom's first differing point affects the segment two points earlier.
+        private int SharedApproach(string node)
+        {
+            var exits=Network.Outgoing(node).ToArray();if(exits.Length<2)return 0;
+            int common=0;
+            while(common<exits.Min(x=>x.points.Length)&&exits.All(x=>Vector3.Distance(x.points[common],exits[0].points[common])<0.001f))common++;
+            return Mathf.Max(0,common-2);
+        }
+        public Vector3 IntersectionPosition(string node)=>Network.Outgoing(node).First().points[SharedApproach(node)];
+        public float IntersectionDistance(string node)=>nodeIndices.TryGetValue(node,out int index)?railPath.ControlPointDistance(index+SharedApproach(node)):-1f;
         public float NodeDistance(string id)=>nodeIndices.TryGetValue(id,out int index)?railPath.ControlPointDistance(index):-1f;
     }
 }

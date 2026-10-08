@@ -76,7 +76,7 @@ namespace AllAboard.Train
         }
         public static void Switch(Transform parent,RouteNode node,ProceduralRailway railway,Material[] palette)
         {
-            var root=new GameObject("Track Switch - "+node.id).transform;root.SetParent(parent,false);root.localPosition=node.position+new Vector3(3.8f,0f,-12f);
+            var root=new GameObject("Track Switch - "+node.id).transform;root.SetParent(parent,false);root.localPosition=railway.IntersectionPosition(node.id)+new Vector3(3.8f,0f,-30f);
             Box(root,"Switch Standing Pad",new Vector3(0f,0.04f,0f),new Vector3(2.2f,0.08f,3f),palette[1]);
             var casing=Box(root,"Trackside Switch",new Vector3(0f,1f,0f),new Vector3(0.55f,0.32f,0.65f),palette[5]);
             var unit=new GameObject("Switch Unit Scale").transform;unit.SetParent(casing.transform,false);unit.localScale=new Vector3(1f/0.55f,1f/0.32f,1f/0.65f);

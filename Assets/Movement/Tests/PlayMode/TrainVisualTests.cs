@@ -51,10 +51,58 @@ namespace AllAboard.Movement.Tests
             train.Throttle=1f;effect.Refresh();Assert.That(smoke.emission.rateOverTime.constant,Is.GreaterThan(10f));
             train.Resources.SetLevels(0f,40f);effect.Refresh();Assert.That(smoke.emission.rateOverTime.constant,Is.Zero);
             var rear=cars[0].GetComponentsInChildren<TrainCoupler>().First(x=>!x.IsFront);
-            var link=cars[0].GetComponentsInChildren<Renderer>().First(x=>x.name=="Coupler Link Eye"&&x.transform.localPosition.z<0f).transform;
+            var heads=cars[0].GetComponentsInChildren<Transform>().Where(x=>x.name=="Janney Coupler").ToArray();
+            Assert.That(heads.Length,Is.EqualTo(2));
+            var link=heads.First(x=>x.localPosition.z<0f).Find("Coupler Knuckle Pivot");
+            Assert.That(link.Find("Knuckle Hook"),Is.Not.Null);
             yield return null;Quaternion connected=link.localRotation;
             Assert.That(rear.Interact(null),Is.True);yield return null;
             Assert.That(Quaternion.Angle(connected,link.localRotation),Is.GreaterThan(40f));
+        }
+        [Test]
+        public void CoachHasSixteenSeatsAndAnUnobstructedAisleAndEntrance()
+        {
+            var coach=cars[2];var rows=coach.GetComponentsInChildren<Transform>().Where(x=>x.name=="Passenger Seat Pair").ToArray();
+            Assert.That(rows.Length,Is.EqualTo(8));
+            Assert.That(rows.Count(x=>x.localPosition.x<0f),Is.EqualTo(4));
+            Physics.SyncTransforms();
+            Assert.That(Physics.Raycast(coach.transform.TransformPoint(new Vector3(0f,1.9f,-4f)),coach.transform.forward,8f,~0,QueryTriggerInteraction.Ignore),Is.False);
+            Assert.That(Physics.Raycast(coach.transform.TransformPoint(new Vector3(0f,1.8f,1.5f)),coach.transform.right,3f,~0,QueryTriggerInteraction.Ignore),Is.False);
+        }
+        [UnityTest]
+        public IEnumerator TrailingCarBodiesSwayGentlyAndSettleWhenStopped()
+        {
+            train.Throttle=1f;
+            for(int i=0;i<60;i++){train.Step(0.02f);yield return new WaitForFixedUpdate();}
+            var coach=cars[2];train.Path.Sample(coach.Distance,out Vector3 p,out Quaternion q);
+            Assert.That(Vector3.Distance(coach.Body.rotation*Vector3.up,q*Vector3.up),Is.InRange(0.00005f,0.0062f));
+            Assert.That(Vector3.Distance(coach.Body.position,p),Is.InRange(0.0001f,0.011f));
+            train.Path.Sample(cars[0].Distance,out _,out Quaternion loco);
+            Assert.That(Quaternion.Angle(cars[0].Body.rotation,loco),Is.LessThan(0.001f));
+            train.Throttle=0f;train.Braking=true;
+            for(int i=0;i<150;i++){train.Step(0.02f);yield return new WaitForFixedUpdate();}
+            train.Path.Sample(coach.Distance,out p,out q);
+            Assert.That(Vector3.Distance(coach.Body.position,p),Is.LessThan(0.0001f));
+            Assert.That(Quaternion.Angle(coach.Body.rotation,q),Is.LessThan(0.001f));
+        }
+        [UnityTest]
+        public IEnumerator SideWallPanelsAndWindowGlassCloseUnintendedGaps()
+        {
+            foreach(var car in cars.Where(x=>x.Kind!=CarKind.Coal))
+            {
+                var details=car.transform.Find("Train Visual Details");
+                foreach(var r in details.GetComponentsInChildren<MeshRenderer>().Where(x=>new[]{"Solid Window Infill","Clear Coach Window","Coach Lower Body","Coach Upper Body","Roof Wall Seam"}.Contains(x.name)))
+                {r.gameObject.layer=30;r.gameObject.AddComponent<MeshCollider>().sharedMesh=r.GetComponent<MeshFilter>().sharedMesh;}
+                Physics.SyncTransforms();
+                foreach(float side in new[]{-1f,1f})foreach(float y in new[]{2.8f,3.85f})
+                    for(float z=-4.3f;z<4.35f;z+=0.08f)
+                    {
+                        if(side>0f&&z>0.48f&&z<2.52f)continue; // the intended open sliding doorway
+                        Vector3 origin=car.transform.TransformPoint(new Vector3(side*3f,y,z));
+                        Assert.That(Physics.Raycast(origin,-car.transform.right*side,1.3f,1<<30),Is.True,car.name+" wall gap at "+side+", "+y+", "+z);
+                    }
+            }
+            yield return null;
         }
         [Test]
         public void DriverCanSeeAheadOverTheBoilerThroughFrontWindows()

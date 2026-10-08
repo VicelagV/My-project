@@ -18,6 +18,8 @@ namespace AllAboard.Train
         private readonly Dictionary<string,Batch> batches=new Dictionary<string,Batch>();
         private readonly List<Mesh> owned=new List<Mesh>();
         private readonly Dictionary<Vector2Int,List<Vector3[]>> corridors=new Dictionary<Vector2Int,List<Vector3[]>>();
+        private readonly HashSet<Vector3Int> sleeperPositions=new HashSet<Vector3Int>();
+        private readonly HashSet<string> trackSegments=new HashSet<string>();
         private RouteNetwork graph;
         public int MeshCount=>owned.Count;
         public void Build(RouteNetwork network,Material earth,Material ballast,Material wood,Material rail,Material leaves)
@@ -28,20 +30,10 @@ namespace AllAboard.Train
             {
                 var temp=new GameObject("Curve Sampling");temp.transform.SetParent(transform,false);
                 var path=temp.AddComponent<RailPath>();path.Configure(edge.points);
+                Track(path,ballast,wood,rail);
                 Vector3 previous=edge.points[0];
-                for(float d=0;d<path.Length;d+=2f)
-                {
-                    path.Sample(d,out Vector3 p,out Quaternion q);
-                    Box(p+Vector3.up*0.0125f,new Vector3(4.65f,0.025f,0.28f),q,wood);
-                    if(d%8f<0.01f)
-                    {
-                        path.Sample(Mathf.Min(d+8f,path.Length),out Vector3 next,out _);
-                        Vector3 middle=(p+next)*0.5f;Quaternion along=Quaternion.LookRotation(next-p);
-                        Box(middle-Vector3.up*0.025f,new Vector3(5.2f,0.05f,Vector3.Distance(p,next)+0.15f),along,ballast);
-                        foreach(float side in new[]{-1.98f,1.98f}) Box(middle+along*new Vector3(side,0.045f,0f),new Vector3(0.14f,0.04f,Vector3.Distance(p,next)+0.08f),along,rail);
-                    }
-                    if(d%10f<0.01f) {AddCorridor(previous,p);previous=p;samples.Add(p);}
-                }
+                for(float d=10f;d<path.Length;d+=10f)
+                {path.Sample(d,out Vector3 p,out _);AddCorridor(previous,p);previous=p;samples.Add(p);}
                 AddCorridor(previous,edge.points[edge.points.Length-1]);
                 Dispose(temp);
             }
@@ -51,6 +43,12 @@ namespace AllAboard.Train
             AddStraight(graph.Node("Return").position,graph.Node("Return").position+Vector3.forward*160f,ballast,wood,rail);
             Terrain(earth);
             Trees(samples,wood,leaves);
+            EmitMeshes();
+        }
+        public void BuildTrack(RailPath path,Material ballast,Material wood,Material rail)
+        {Track(path,ballast,wood,rail);EmitMeshes();}
+        private void EmitMeshes()
+        {
             foreach(var pair in batches)
             {
                 var data=pair.Value;if(data.vertices.Count==0)continue;
@@ -64,13 +62,44 @@ namespace AllAboard.Train
         private void AddStraight(Vector3 a,Vector3 b,Material ballast,Material wood,Material rail)
         {
             AddCorridor(a,b);
-            for(float d=0;d<Vector3.Distance(a,b);d+=2f)
+            var temp=new GameObject("Straight Rail Sampling");temp.transform.SetParent(transform,false);
+            var path=temp.AddComponent<RailPath>();path.Configure(new[]{a,b});Track(path,ballast,wood,rail);Dispose(temp);
+        }
+        private static Vector3Int TrackKey(Vector3 p)=>new Vector3Int(Mathf.RoundToInt(p.x*100f),Mathf.RoundToInt(p.y*100f),Mathf.RoundToInt(p.z*100f));
+        private void Track(RailPath path,Material ballast,Material wood,Material rail)
+        {
+            for(float d=0f;d<path.Length;d+=0.8f)
             {
-                Vector3 p=a+Vector3.forward*d;
-                Box(p+Vector3.forward,new Vector3(5.2f,0.04f,2.1f),Quaternion.identity,ballast);
-                Box(p+Vector3.up*0.0125f,new Vector3(4.65f,0.025f,0.28f),Quaternion.identity,wood);
-                foreach(float x in new[]{-1.98f,1.98f})Box(p+new Vector3(x,0.045f,1f),new Vector3(0.14f,0.04f,2.04f),Quaternion.identity,rail);
+                path.Sample(d,out Vector3 p,out Quaternion q);if(!sleeperPositions.Add(TrackKey(p)))continue;
+                Box(p+Vector3.up*0.002f,new Vector3(4.65f,0.045f,0.25f),q,wood);
+                foreach(float side in new[]{-1.98f,1.98f})
+                    Box(p+q*new Vector3(side,0.034f,0f),new Vector3(0.29f,0.017f,0.32f),q,rail);
             }
+            for(float d=0f;d<path.Length;d+=2f)
+            {
+                path.Sample(d,out Vector3 a,out Quaternion qa);path.Sample(Mathf.Min(d+2f,path.Length),out Vector3 b,out Quaternion qb);
+                string key=TrackKey(a)+"/"+TrackKey(b);if(!trackSegments.Add(key))continue;
+                // A sloping gravel shoulder and three-part rail section replace flat strips.
+                Strip(a,b,qa,qb,0f,5.0f,0.035f,-0.0115f,ballast,6.0f,d==0f,d+2f>=path.Length);
+                foreach(float side in new[]{-1.98f,1.98f})
+                {
+                    Strip(a,b,qa,qb,side,0.22f,0.018f,0.035f,rail,capStart:d==0f,capEnd:d+2f>=path.Length);
+                    Strip(a,b,qa,qb,side,0.055f,0.030f,0.055f,rail,capStart:d==0f,capEnd:d+2f>=path.Length);
+                    Strip(a,b,qa,qb,side,0.14f,0.022f,0.080f,rail,capStart:d==0f,capEnd:d+2f>=path.Length);
+                }
+            }
+        }
+        private void Strip(Vector3 a,Vector3 b,Quaternion qa,Quaternion qb,float offset,float width,float height,float y,Material material,float baseWidth=0f,bool capStart=false,bool capEnd=false)
+        {
+            var batch=GetBatch((a+b)*0.5f,material,"Railway");var v=new Vector3[8];
+            for(int i=0;i<8;i++)
+            {
+                Vector3 cross=new Vector3(offset+((i&1)==0?-1f:1f)*(((i&2)==0&&baseWidth>0f)?baseWidth:width)*0.5f,y+((i&2)==0?-height:height)*0.5f,0f);
+                v[i]=((i&4)==0?a:b)+((i&4)==0?qa:qb)*cross;
+            }
+            int[] faces={0,4,6,2,1,3,7,5,0,1,5,4,2,6,7,3,0,2,3,1,4,5,7,6};
+            for(int i=0;i<16;i+=4)Quad(batch,v[faces[i]],v[faces[i+1]],v[faces[i+2]],v[faces[i+3]]);
+            if(capStart)Quad(batch,v[0],v[2],v[3],v[1]);if(capEnd)Quad(batch,v[4],v[5],v[7],v[6]);
         }
         private void AddCorridor(Vector3 a,Vector3 b)
         {
@@ -139,7 +168,14 @@ namespace AllAboard.Train
             var batch=GetBatch(center,material,"Track and Trees");Matrix4x4 matrix=Matrix4x4.TRS(center,rotation,size);
             var v=new Vector3[8];for(int i=0;i<8;i++)v[i]=matrix.MultiplyPoint3x4(new Vector3((i&1)==0?-0.5f:0.5f,(i&2)==0?-0.5f:0.5f,(i&4)==0?-0.5f:0.5f));
             int[] faces={0,4,6,2,1,3,7,5,0,1,5,4,2,6,7,3,0,2,3,1,4,5,7,6};
-            for(int i=0;i<faces.Length;i+=4){Triangle(batch,v[faces[i]],v[faces[i+1]],v[faces[i+2]]);Triangle(batch,v[faces[i]],v[faces[i+2]],v[faces[i+3]]);}
+            for(int i=0;i<faces.Length;i+=4)Quad(batch,v[faces[i]],v[faces[i+1]],v[faces[i+2]],v[faces[i+3]]);
+        }
+        private static void Quad(Batch batch,Vector3 a,Vector3 b,Vector3 c,Vector3 d)
+        {
+            int first=batch.vertices.Count;batch.vertices.Add(a);batch.vertices.Add(b);batch.vertices.Add(c);batch.vertices.Add(d);
+            Vector3 normal=Vector3.Cross(b-a,c-a).normalized;for(int i=0;i<4;i++)batch.normals.Add(normal);
+            batch.triangles.Add(first);batch.triangles.Add(first+1);batch.triangles.Add(first+2);
+            batch.triangles.Add(first);batch.triangles.Add(first+2);batch.triangles.Add(first+3);
         }
         private static void Triangle(Batch batch,Vector3 a,Vector3 b,Vector3 c)
         {

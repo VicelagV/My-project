@@ -122,10 +122,25 @@ namespace AllAboard.Movement.Tests
             for(int i=1;i<4;i++)Assert.That(world.Train.Cars[i-1].Distance-world.Train.Cars[i].Distance,Is.EqualTo(9.5f).Within(0.01f));
         }
         [Test]
+        public void StoppedTrainCanPassTheLeverButCannotEnterTheSplitBeforeSwitching()
+        {
+            float junction=world.IntersectionDistance("Starter");
+            var control=world.GetComponentsInChildren<TrackSwitch>().First(x=>x.NodeId=="Starter");
+            world.Path.Sample(junction-30f,out Vector3 marker,out _);
+            Assert.That(Mathf.Abs(control.transform.position.z-marker.z),Is.LessThan(0.01f));
+            world.Train.Configure(world.Path,world.Train.Cars.ToArray(),junction-9.2f);
+            Vector3 before=world.Train.Cars[0].Body.position;
+            Assert.That(world.Choose("Starter",1),Is.True);
+            world.Path.Sample(world.Train.HeadDistance,out Vector3 after,out _);
+            Assert.That(Vector3.Distance(before,after),Is.LessThan(0.001f),"Switch must preserve track underneath the stopped train.");
+            world.Train.Configure(world.Path,world.Train.Cars.ToArray(),world.IntersectionDistance("Starter")-8.7f);
+            Assert.That(world.Choose("Starter",0),Is.False,"The locomotive nose now occupies the split.");
+        }
+        [Test]
         public void DetachedCarStillLocksThePointsItOccupies()
         {
             var car=world.Train.Cars[3];Assert.That(world.Train.Disconnect(car,true),Is.True);
-            car.Place(world.Path,world.NodeDistance("Starter")+5f,true);
+            car.Place(world.Path,world.IntersectionDistance("Starter")+5f,true);
             Assert.That(world.Choose("Starter",1),Is.False);
         }
         [UnityTest]

@@ -293,17 +293,10 @@ namespace AllAboard.Editor
         private static void BuildRails(RailPath path)
         {
             var root = new GameObject("Primitive Track");
-            for (float distance = 0f; distance < path.Length; distance += 2f)
-            {
-                path.Sample(distance, out Vector3 position, out Quaternion rotation);
-                var tie = Box(root.transform, "Sleeper", position + Vector3.up * 0.04f, new Vector3(2.6f, 0.08f, 0.24f), deck);
-                tie.transform.rotation = rotation;
-                foreach (float side in new[] { -0.75f, 0.75f })
-                {
-                    var rail = Box(root.transform, "Rail", position + rotation * new Vector3(side, 0.15f, 1f), new Vector3(0.1f, 0.15f, 2.08f), metal);
-                    rail.transform.rotation = rotation;
-                }
-            }
+            root.AddComponent<RailTrackVisual>().Configure(path,
+                AssetDatabase.LoadAssetAtPath<Material>("Assets/Movement/Materials/RouteBallast.mat"),
+                AssetDatabase.LoadAssetAtPath<Material>("Assets/Movement/Materials/TrainWalnut.mat"),
+                AssetDatabase.LoadAssetAtPath<Material>("Assets/Movement/Materials/TrainMachinedSteel.mat"));
             foreach (float end in new[] { 1f, path.Length - 1f })
             {
                 path.Sample(end, out Vector3 p, out Quaternion q);

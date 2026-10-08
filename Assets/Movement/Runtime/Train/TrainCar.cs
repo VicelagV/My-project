@@ -18,6 +18,7 @@ namespace AllAboard.Train
         private Rigidbody body;
         private float wheelAngle;
         private TrainWheel[] detailedWheels;
+        private float swayWeight;
         public CarKind Kind => kind;
         public float BaseWeight => baseWeight;
         public float Distance => distance;
@@ -39,6 +40,14 @@ namespace AllAboard.Train
             float travelled = pathDistance - distance;
             distance = pathDistance;
             path.Sample(distance, out Vector3 position, out Quaternion rotation);
+            if(kind!=CarKind.Locomotive)
+            {
+                float target=owner!=null&&owner.Contains(this)?Mathf.Clamp01(Mathf.Abs(owner.Speed)/12f):0f;
+                swayWeight=immediate?0f:Mathf.MoveTowards(swayWeight,target,Time.fixedDeltaTime*1.5f);
+                float phase=distance*0.24f;
+                position+=rotation*new Vector3(Mathf.Sin(phase)*0.008f,Mathf.Sin(phase*1.7f)*0.006f,0f)*swayWeight;
+                rotation*=Quaternion.Euler(0f,0f,Mathf.Sin(phase)*0.35f*swayWeight);
+            }
             if (immediate)
             {
                 // Reset interpolation history when spawning or relocating the consist.

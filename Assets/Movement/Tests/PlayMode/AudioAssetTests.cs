@@ -7,6 +7,25 @@ namespace AllAboard.Movement.Tests
     public sealed class AudioAssetTests
     {
         [Test]
+        public void CountrysideAmbienceIsLongStereo()
+        {
+            var clip=UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/CountrysideLoop.wav");
+            Assert.That(clip,Is.Not.Null);Assert.That(clip.channels,Is.EqualTo(2));
+            Assert.That(clip.length,Is.GreaterThan(100f));
+        }
+        [Test]
+        public void RecordedTrainSignalsAreMonoAndKeepTheirNaturalPhrases()
+        {
+            foreach(var spec in new[]{("TrainBell",2.612245f),("TrainWhistle",4.148594f)})
+            {
+                var clip=UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/"+spec.Item1+".wav");
+                Assert.That(clip,Is.Not.Null);Assert.That(clip.channels,Is.EqualTo(1));
+                Assert.That(clip.length,Is.EqualTo(spec.Item2).Within(0.01f));
+                var data=new float[clip.samples];Assert.That(clip.GetData(data,0),Is.True);
+                Assert.That(System.Linq.Enumerable.Max(data,x=>Mathf.Abs(x)),Is.InRange(0.7f,0.9f));
+            }
+        }
+        [Test]
         public void ImportedSoundPaletteIsPlayableAndWiredToBothPrefabs()
         {
             var profile = UnityEditor.AssetDatabase.LoadAssetAtPath<PrototypeAudioSet>(

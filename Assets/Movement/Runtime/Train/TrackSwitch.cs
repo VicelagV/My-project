@@ -18,7 +18,7 @@ namespace AllAboard.Train
             {
                 if(railway==null)return "Track switch";
                 if(Mathf.Abs(railway.Train.Speed)>0.1f)return "Stop the train before changing the switch";
-                if(!railway.CanChange(node))return "Train has passed this switch";
+                if(!railway.CanChange(node))return "Train has reached the intersection";
                 var exits=railway.Network.Outgoing(node).ToArray();return "E: select "+exits[(railway.SelectedIndex(node)+1)%exits.Length].title;
             }
         }

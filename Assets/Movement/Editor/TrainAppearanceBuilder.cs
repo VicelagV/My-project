@@ -14,7 +14,7 @@ namespace AllAboard.Editor
     {
         private const string Owned = "Train Visual Details", CabOwned = "Cab Visual Details";
         private static Material ink, navy, brass, red, steel, wood, leather, ivory, glass, fire, smoke;
-        private static Mesh ring, thinRing, cylinder, button, rounded, roof, coal;
+        private static Mesh ring, thinRing, cylinder, button, rounded, roof, coal, panelBox;
         [MenuItem("All Aboard/Apply Train Visual Pass")]
         public static void Apply()
         {
@@ -31,21 +31,35 @@ namespace AllAboard.Editor
             try { foreach (MeshFilter mesh in lump.GetComponentsInChildren<MeshFilter>()) mesh.sharedMesh = coal; PrefabUtility.SaveAsPrefabAsset(lump, coalFile); }
             finally { PrefabUtility.UnloadPrefabContents(lump); }
             var previous = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
-            var scene = UnityEngine.SceneManagement.SceneManager.GetSceneByPath(TrainPrototypeBuilder.ScenePath);
-            bool alreadyOpen=scene.IsValid() && scene.isLoaded;
-            if(!alreadyOpen) scene = EditorSceneManager.OpenScene(TrainPrototypeBuilder.ScenePath, Application.isBatchMode ? OpenSceneMode.Single : OpenSceneMode.Additive);
-            var train = scene.GetRootGameObjects().Select(x => x.GetComponent<TrainController>()).First(x => x != null);
-            DressCab(train.Consist.First());
-            foreach (TrainCar car in train.Consist)
-                foreach (PrototypeInteractable target in car.GetComponentsInChildren<PrototypeInteractable>())
+            foreach(string scenePath in new[]{TrainPrototypeBuilder.ScenePath,ProceduralRailwayBuilder.ScenePath})
+            {
+                if(AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath)==null)continue;
+                var scene=UnityEngine.SceneManagement.SceneManager.GetSceneByPath(scenePath);
+                bool alreadyOpen=scene.IsValid()&&scene.isLoaded;
+                if(!alreadyOpen)scene=EditorSceneManager.OpenScene(scenePath,OpenSceneMode.Additive);
+                var train=scene.GetRootGameObjects().Select(x=>x.GetComponent<TrainController>()).First(x=>x!=null);
+                foreach(TrainCar car in train.Cars)DecorateCar(car.gameObject,car.Kind);
+                DressCab(train.Cars[0]);
+                var ambience=train.GetComponent<TrainAmbience>();if(ambience==null)ambience=train.gameObject.AddComponent<TrainAmbience>();
+                ambience.Configure(AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/CountrysideLoop.wav"));EditorUtility.SetDirty(ambience);
+                foreach(TrainCar car in train.Cars)
+                    foreach(PrototypeInteractable target in car.GetComponentsInChildren<PrototypeInteractable>())
+                    {
+                        var highlight=target.GetComponent<ControlHighlight>();if(highlight==null)highlight=target.gameObject.AddComponent<ControlHighlight>();
+                        Renderer[] geometry=target is TrainLadder?car.GetComponentsInChildren<Renderer>().Where(x=>x.enabled&&x.name.Contains("Ladder")).ToArray():target.GetComponentsInChildren<Renderer>().Where(x=>x.enabled&&x.name!="Black Train Outline"&&x.GetComponent<MeshFilter>()!=null).ToArray();
+                        highlight.Configure(AssetDatabase.LoadAssetAtPath<Material>("Assets/Movement/Materials/HoverOutline.mat"),geometry);
+                    }
+                var oldTrack=scene.GetRootGameObjects().FirstOrDefault(x=>x.name=="Primitive Track");
+                if(oldTrack!=null)
                 {
-                    var highlight = target.GetComponent<ControlHighlight>();
-                    if (highlight == null) highlight = target.gameObject.AddComponent<ControlHighlight>();
-                    Renderer[] geometry = target is TrainLadder ? car.GetComponentsInChildren<Renderer>().Where(x => x.enabled && x.name.Contains("Ladder")).ToArray() : target.GetComponentsInChildren<Renderer>().Where(x => x.enabled && x.name != "Black Train Outline" && x.GetComponent<MeshFilter>() != null).ToArray();
-                    highlight.Configure(AssetDatabase.LoadAssetAtPath<Material>("Assets/Movement/Materials/HoverOutline.mat"), geometry);
+                    foreach(Transform child in oldTrack.transform.Cast<Transform>().Where(x=>x.name!="Track End Buffer"&&x.name!="Generated Test Track").ToArray())Object.DestroyImmediate(child.gameObject);
+                    var visual=oldTrack.GetComponent<RailTrackVisual>();if(visual==null)visual=oldTrack.AddComponent<RailTrackVisual>();
+                    visual.Configure(train.Path,AssetDatabase.LoadAssetAtPath<Material>("Assets/Movement/Materials/RouteBallast.mat"),wood,steel);
                 }
-            EditorSceneManager.SaveScene(scene);
-            if (!Application.isBatchMode && !alreadyOpen) { EditorSceneManager.CloseScene(scene, true); UnityEngine.SceneManagement.SceneManager.SetActiveScene(previous); }
+                EditorSceneManager.SaveScene(scene);
+                if(!alreadyOpen)EditorSceneManager.CloseScene(scene,true);
+            }
+            if(previous.IsValid()&&previous.isLoaded)UnityEngine.SceneManagement.SceneManager.SetActiveScene(previous);
             AssetDatabase.SaveAssets(); Debug.Log("Applied train meshes, rolling gear, coach/tender details and cab craftsmanship.");
         }
         private static void Initialize()
@@ -65,11 +79,12 @@ namespace AllAboard.Editor
             fire = Mat("TrainFireGlow", new Color(0.9f, 0.23f, 0.04f)); fire.EnableKeyword("_EMISSION"); fire.SetColor("_EmissionColor", new Color(2.8f, 0.35f, 0.015f)); EditorUtility.SetDirty(fire);
             ring = MeshAsset("TrainRoundRing", RingMesh(0.44f, 0.06f)); thinRing = MeshAsset("TrainThinRing", RingMesh(0.488f, 0.012f));
             cylinder = MeshAsset("TrainCylinderY", CylinderMesh(false)); button = MeshAsset("TrainButtonZ", CylinderMesh(true)); rounded = MeshAsset("TrainBevelledBox", RoundedBox());
+            panelBox=MeshAsset("TrainPanelBox", PanelBox());
             roof = MeshAsset("TrainCoachRoof", RoofMesh(false)); coal = MeshAsset("TrainCoalRock", CoalMesh()); smoke = SmokeMaterial();
         }
         private static Transform Root(Transform parent, string name, bool undoScale = false)
         {
-            var old = parent.Find(name); if (old != null) Object.DestroyImmediate(old.gameObject);
+            foreach(var old in parent.Cast<Transform>().Where(x=>x.name==name).ToArray())Object.DestroyImmediate(old.gameObject);
             var root = new GameObject(name).transform; root.SetParent(parent, false);
             if (undoScale) root.localScale = new Vector3(1f / parent.localScale.x, 1f / parent.localScale.y, 1f / parent.localScale.z);
             return root;
@@ -118,14 +133,13 @@ namespace AllAboard.Editor
                 {
                     foreach (var span in side < 0f ? new[] { new Vector2(0f, 8.8f) } : new[] { new Vector2(-1.95f, 4.9f), new Vector2(3.45f, 1.9f) })
                     {
-                        Part(details, "Coach Lower Body", new Vector3(side * 1.9f, 1.69f, span.x), new Vector3(0.15f, 1.08f, span.y), navy);
-                        Part(details, "Coach Upper Body", new Vector3(side * 1.9f, kind == CarKind.Locomotive ? 3.86f : 3.66f, span.x), new Vector3(0.15f, kind == CarKind.Locomotive ? 0.28f : 0.67f, span.y), kind == CarKind.Locomotive ? ivory : navy);
+                        Part(details, "Coach Lower Body", new Vector3(side * 1.9f, 1.69f, span.x), new Vector3(0.15f, 1.08f, span.y), navy, panelBox);
+                        Part(details, "Coach Upper Body", new Vector3(side * 1.9f, kind == CarKind.Locomotive ? 3.86f : 3.66f, span.x), new Vector3(0.15f, kind == CarKind.Locomotive ? 0.28f : 0.67f, span.y), kind == CarKind.Locomotive ? ivory : navy, panelBox);
                         Part(details, "Gold Waist Stripe", new Vector3(side * 1.984f, 2.17f, span.x), new Vector3(0.012f, 0.065f, span.y), brass);
                     }
                     var centers = side < 0f ? new[] { -3.45f, -1.72f, 0f, 1.72f, 3.45f } : new[] { -3.45f, -1.72f, 0f, 3.45f };
                     foreach (float z in centers) { float width = side > 0f && z == 0f ? 0.70f : 1.45f; Window(details, side, z - (side > 0f && z == 0f ? 0.20f : 0f), width, kind == CarKind.Locomotive); }
-                    foreach (float z in new[] { -4.3f, -2.57f, -0.86f, 0.86f, 2.57f, 4.3f })
-                        if (side < 0f || z < 0.5f || z > 2.5f) Part(details, "Window Pillar", new Vector3(side * 1.9f, kind == CarKind.Locomotive ? 2.96f : 2.76f, z), new Vector3(0.16f, kind == CarKind.Locomotive ? 1.55f : 1.17f, 0.16f), navy);
+                    FillWindowGaps(details,side,kind==CarKind.Locomotive,centers);
                     if(side > 0f) Part(details, "Door Top Trim", new Vector3(side * 1.92f, 3.44f, 1.5f), new Vector3(0.20f, 0.1f, 2.05f), brass);
                 }
                 foreach (float end in new[] { -4.4f, 4.4f })
@@ -150,13 +164,18 @@ namespace AllAboard.Editor
                     Part(doorDetails, "Door Window", new Vector3(0f, 0.49f, 0f), new Vector3(0.018f, 1.02f, 1.64f), glass);
                     foreach (float side in new[] { -1f, 1f }) Part(doorDetails, "Door Handle", new Vector3(side * 0.13f, 0f, 0.65f), new Vector3(0.05f, 0.30f, 0.05f), brass, cylinder);
                 }
-                foreach (Transform child in body) if (child.name.StartsWith("Placeholder Seat")) Colour(child, leather, rounded);
                 if (kind == CarKind.Passenger)
                 {
-                    foreach (float z in new[] { -2.5f, -0.6f, 2.5f })
+                    foreach(Transform child in body.Cast<Transform>().Where(x=>x.name.StartsWith("Placeholder Seat")).ToArray())Object.DestroyImmediate(child.gameObject);
+                    foreach(float z in new[]{-3.05f,-1.70f,-0.35f,3.05f})
+                        foreach(float side in new[]{-1f,1f})PassengerSeats(details,side,z);
+                    Part(details,"Centre Aisle Runner",new Vector3(0f,1.158f,0f),new Vector3(0.88f,0.012f,8.5f),navy,panelBox);
+                    foreach(float side in new[]{-1f,1f})
                     {
-                        foreach (float dz in new[] { -0.38f, 0.38f }) Part(details, "Bench Leg", new Vector3(-1.25f, 1.4f, z + dz), new Vector3(0.09f, 0.5f, 0.09f), steel);
-                        Part(details, "Seat Brass Piping", new Vector3(-0.84f, 1.92f, z), new Vector3(0.025f, 0.025f, 0.85f), brass);
+                        foreach(var span in side<0f?new[]{new Vector2(0f,8.6f)}:new[]{new Vector2(-1.95f,4.9f),new Vector2(3.45f,1.9f)})
+                            Part(details,"Interior Window Rail",new Vector3(side*1.77f,2.18f,span.x),new Vector3(0.045f,0.08f,span.y),wood);
+                        Part(details,"Overhead Luggage Shelf",new Vector3(side*1.48f,3.42f,0f),new Vector3(0.68f,0.04f,8.5f),brass);
+                        foreach(float z in new[]{-3f,0f,3f})Part(details,"Luggage Shelf Bracket",new Vector3(side*1.74f,3.29f,z),new Vector3(0.05f,0.25f,0.05f),brass);
                     }
                     foreach (float z in new[] { -2.5f, 0f, 2.5f })
                     {
@@ -164,7 +183,7 @@ namespace AllAboard.Editor
                         var light = new GameObject("Warm Cabin Light").AddComponent<Light>(); light.transform.SetParent(details, false); light.transform.localPosition = new Vector3(0f, 3.6f, z);
                         light.type = LightType.Point; light.color = new Color(1f, 0.78f, 0.5f); light.intensity = 0.65f; light.range = 3f;
                     }
-                    foreach (float end in new[] { -4f, 4f }) Part(details, "Luggage Rack", new Vector3(-1.30f, 3.15f, end), new Vector3(0.65f, 0.05f, 0.6f), brass);
+
                 }
             }
             foreach (float z in new[] { -2.8f, 2.8f }) foreach (float side in new[] { -1f, 1f })
@@ -179,6 +198,45 @@ namespace AllAboard.Editor
                 Coupler(details, control, kind == CarKind.Locomotive && control.IsFront ? 8.4f : 4.4f); Colour(control.transform, red, button);
             }
             if (kind == CarKind.Locomotive) Engine(car, details);
+        }
+        private static void FillWindowGaps(Transform parent,float side,bool cab,float[] centers)
+        {
+            var openings=centers.Select(z=>new Vector2(z-(side>0f&&z==0f?0.20f:0f)-(side>0f&&z==0f?0.70f:1.45f)*0.5f,
+                z-(side>0f&&z==0f?0.20f:0f)+(side>0f&&z==0f?0.70f:1.45f)*0.5f)).ToList();
+            if(side>0f)openings.Add(new Vector2(0.5f,2.5f));
+            openings=openings.OrderBy(x=>x.x).ToList();float start=-4.4f;
+            foreach(var hole in openings.Concat(new[]{new Vector2(4.4f,4.4f)}))
+            {
+                if(hole.x>start)Part(parent,"Solid Window Infill",new Vector3(side*1.9f,cab?2.96f:2.76f,(start+hole.x)*0.5f),
+                    new Vector3(0.15f,cab?1.55f:1.17f,hole.x-start+0.025f),navy,panelBox);
+                start=Mathf.Max(start,hole.y);
+            }
+            // Close the top corners between the curved roof and the flat wall panels.
+            Part(parent,"Roof Wall Seam",new Vector3(side*1.9f,3.94f,0f),new Vector3(0.15f,0.24f,8.85f),navy,panelBox);
+        }
+        private static void PassengerSeats(Transform parent,float side,float z)
+        {
+            var row=new GameObject("Passenger Seat Pair").transform;row.SetParent(parent,false);row.localPosition=new Vector3(side*1.16f,0f,z);
+            var cushion=Part(row,"Paired Seat Cushion",new Vector3(0f,1.65f,0f),new Vector3(1.24f,0.22f,0.76f),leather);
+            cushion.AddComponent<BoxCollider>();
+            var back=Part(row,"Paired Seat Back",new Vector3(0f,2.04f,-0.33f),new Vector3(1.24f,0.86f,0.15f),leather);
+            back.AddComponent<BoxCollider>();
+            foreach(float x in new[]{-0.56f,0.56f})
+            {
+                Part(row,"Seat Armrest",new Vector3(x,1.94f,0f),new Vector3(0.07f,0.09f,0.78f),wood);
+                foreach(float dz in new[]{-0.24f,0.24f})Part(row,"Seat Leg",new Vector3(x,1.34f,dz),new Vector3(0.065f,0.38f,0.065f),steel);
+            }
+            Part(row,"Seat Divider",new Vector3(0f,1.78f,0f),new Vector3(0.025f,0.03f,0.7f),brass);
+            Part(row,"Seat Back Piping",new Vector3(0f,2.48f,-0.33f),new Vector3(1.2f,0.025f,0.17f),brass);
+        }
+        private static Mesh PanelBox()
+        {
+            var v=new List<Vector3>();var t=new List<int>();var p=new Vector3[8];
+            for(int i=0;i<8;i++)p[i]=new Vector3((i&1)==0?-0.5f:0.5f,(i&2)==0?-0.5f:0.5f,(i&4)==0?-0.5f:0.5f);
+            int[] faces={0,4,6,2,1,3,7,5,0,1,5,4,2,6,7,3,0,2,3,1,4,5,7,6};
+            for(int i=0;i<faces.Length;i+=4)
+            {var normal=Vector3.Cross(p[faces[i+1]]-p[faces[i]],p[faces[i+2]]-p[faces[i]]);Tri(v,t,p[faces[i]],p[faces[i+1]],p[faces[i+2]],normal);Tri(v,t,p[faces[i]],p[faces[i+2]],p[faces[i+3]],normal);}
+            return Make(v,t);
         }
         private static void Window(Transform parent, float side, float z, float width, bool cab)
         {
@@ -212,11 +270,25 @@ namespace AllAboard.Editor
                 Part(parent, "Buffer Pad", new Vector3(x, 0.88f, sign * (endDistance + 0.30f)), new Vector3(0.45f, 0.07f, 0.45f), navy, cylinder, Quaternion.Euler(90f, 0f, 0f));
                 for (int coil = 0; coil < 4; coil++) Part(parent, "Buffer Spring Ring", new Vector3(x, 0.88f, sign * (endDistance + coil * 0.06f)), new Vector3(0.22f, 0.22f, 0.24f), steel, ring);
             }
-            Part(parent, "Coupler Drawbar", control.Point.localPosition - Vector3.forward * sign * 0.17f, new Vector3(0.20f, 0.19f, 0.60f), steel);
-            var eye = Part(parent, "Coupler Link Eye", control.Point.localPosition, new Vector3(0.30f, 0.40f, 0.40f), brass, ring, Quaternion.Euler(90f, 0f, 0f));
+            var head=new GameObject("Janney Coupler").transform;head.SetParent(parent,false);
+            head.localPosition=control.Point.localPosition;head.localRotation=Quaternion.Euler(0f,control.IsFront?0f:180f,0f);
+            Part(head,"Coupler Draft Shank",new Vector3(0f,0f,-0.27f),new Vector3(0.28f,0.25f,0.72f),steel);
+            Part(head,"Draft Gear Collar",new Vector3(0f,0f,-0.40f),new Vector3(0.48f,0.36f,0.13f),navy);
+            Part(head,"Coupler Cast Housing",new Vector3(0f,0f,-0.15f),new Vector3(0.72f,0.36f,0.33f),steel);
+            Part(head,"Coupler Fixed Cheek",new Vector3(-0.27f,0f,0.015f),new Vector3(0.22f,0.36f,0.32f),steel,rounded,Quaternion.Euler(0f,-15f,0f));
+            foreach(float y in new[]{-0.15f,0.15f})Part(head,"Coupler Housing Lip",new Vector3(-0.03f,y,-0.015f),new Vector3(0.52f,0.075f,0.30f),steel);
+            var pivot=new GameObject("Coupler Knuckle Pivot").transform;pivot.SetParent(head,false);pivot.localPosition=new Vector3(0.22f,0f,-0.035f);
+            Part(pivot,"Knuckle Heel",new Vector3(0.015f,0f,0.025f),new Vector3(0.24f,0.27f,0.27f),steel,rounded,Quaternion.Euler(0f,-20f,0f));
+            Part(pivot,"Knuckle Hook",new Vector3(-0.19f,0f,0.16f),new Vector3(0.40f,0.27f,0.17f),steel,rounded,Quaternion.Euler(0f,10f,0f));
+            Part(pivot,"Knuckle Nose",new Vector3(-0.36f,0f,0.115f),new Vector3(0.17f,0.27f,0.20f),steel,rounded,Quaternion.Euler(0f,-25f,0f));
+            Part(head,"Knuckle Hinge Pin",new Vector3(0.22f,0f,-0.035f),new Vector3(0.14f,0.24f,0.14f),brass,cylinder);
+            Part(head,"Knuckle Pin Cap",new Vector3(0.22f,0.245f,-0.035f),new Vector3(0.20f,0.04f,0.20f),brass,cylinder);
+            Part(head,"Coupler Lock Pin",new Vector3(-0.10f,0.22f,-0.21f),new Vector3(0.065f,0.10f,0.065f),steel,cylinder);
+            Part(head,"Uncoupling Rod",new Vector3(-0.42f,0.30f,-0.21f),new Vector3(0.65f,0.045f,0.045f),brass);
             var feedback = control.GetComponent<TrainCouplerVisual>(); if (feedback == null) feedback = control.gameObject.AddComponent<TrainCouplerVisual>();
-            feedback.Configure(control, eye.transform, control.GetComponent<Renderer>());
-            Part(parent, "Coupler Lock Housing", control.transform.localPosition + Vector3.forward * sign * 0.04f, new Vector3(0.31f, 0.36f, 0.12f), navy);
+            feedback.Configure(control, pivot, control.GetComponent<Renderer>());
+            EditorUtility.SetDirty(feedback);
+            if(PrefabUtility.IsPartOfPrefabInstance(feedback))PrefabUtility.RecordPrefabInstancePropertyModifications(feedback);
             for (int segment = 0; segment < 7; segment++)
             {
                 float angle = segment * Mathf.PI / 6f;
@@ -260,17 +332,19 @@ namespace AllAboard.Editor
         {
             if (navy == null) Initialize();
             Transform details = Root(car.transform, CabOwned);
-            Colour(car.transform.Find("Cab Bulkhead"), navy, rounded); Colour(car.transform.Find("Driver Instrument Panel"), navy, rounded);
+            Colour(car.transform.Find("Cab Bulkhead"), navy, panelBox); Colour(car.transform.Find("Driver Instrument Panel"), navy, rounded);
             var bulkhead=car.transform.Find("Cab Bulkhead");
-            bulkhead.localPosition=new Vector3(0f,1.925f,4.2f); bulkhead.localScale=new Vector3(3.3f,1.45f,0.2f);
+            bulkhead.localPosition=new Vector3(0f,1.9f,4.2f); bulkhead.localScale=new Vector3(3.8f,1.55f,0.2f);
             foreach(float x in new[]{-0.85f,0.85f})
             {
                 Part(details,"Front Cab Window",new Vector3(x,3.24f,4.2f),new Vector3(1.5f,1.12f,0.012f),glass);
                 foreach(float y in new[]{2.66f,3.82f}) Part(details,"Front Window Brass Sill",new Vector3(x,y,4.17f),new Vector3(1.56f,0.055f,0.09f),brass);
                 foreach(float edge in new[]{-1f,1f}) Part(details,"Front Window Frame",new Vector3(x+edge*0.77f,3.24f,4.2f),new Vector3(0.065f,1.2f,0.15f),navy);
             }
-            Part(details,"Front Cab Window Header",new Vector3(0f,3.94f,4.2f),new Vector3(3.3f,0.23f,0.15f),navy);
-            var frontGlassCollision=Part(details,"Front Window Safety Glass",new Vector3(0f,3.25f,4.24f),new Vector3(3.3f,1.2f,0.02f),glass);
+            Part(details,"Front Cab Window Header",new Vector3(0f,3.94f,4.2f),new Vector3(3.8f,0.35f,0.15f),navy,panelBox);
+            foreach(float x in new[]{-1.75f,1.75f})Part(details,"Front Cab Corner Jamb",new Vector3(x,3.35f,4.2f),new Vector3(0.34f,1.55f,0.15f),navy,panelBox);
+            Part(details,"Front Centre Mullion",new Vector3(0f,3.25f,4.2f),new Vector3(0.2f,1.2f,0.15f),navy,panelBox);
+            var frontGlassCollision=Part(details,"Front Window Safety Glass",new Vector3(0f,3.25f,4.24f),new Vector3(3.8f,1.2f,0.02f),glass);
             frontGlassCollision.GetComponent<Renderer>().enabled=false; frontGlassCollision.AddComponent<BoxCollider>();
             var driverSeat=car.GetComponentInChildren<ConductorSeat>();
             driverSeat.transform.localPosition=new Vector3(0f,0.9f,0f); driverSeat.ConfigureFeet(new Vector3(-0.85f,2.35f,1.6f));

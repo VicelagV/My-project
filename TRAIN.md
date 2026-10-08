@@ -77,8 +77,10 @@ Steam hiss fades with throttle and stops when braking or out of Steam. Each car
 has a soft rolling rhythm that changes with speed and fades away when stopped;
 uncoupled stationary cars stop producing it. Whistle and bell remain separate E
 controls. Volumes, fade time and reference speed are configurable on TrainDriveAudio.
-All four train clips are original synthesized placeholders generated with the
-Python offline tool `Tools/create_train_sounds.py`.
+Steam and rolling loops are original synthesized placeholders generated with
+`Tools/create_train_sounds.py`. Bell and whistle now use the user-selected Trainz horn and boxing bell
+clips, prepared with `Tools/import_train_signals.py`; source information and
+license status are in [TRAIN_SOUND_CREDITS.md](TRAIN_SOUND_CREDITS.md).
 
 ## Technical scope
 
@@ -97,3 +99,16 @@ hover outlines, gauge needles, throttle limits, sound response, couplers, weight
 The existing movement and object regression suite remains included.
 
 The separate seeded route playground and its controls are documented in [ROUTES.md](ROUTES.md).
+
+Passenger coaches have sixteen upholstered seats in paired rows beside a clear
+centre aisle, with armrests, luggage shelves and cabin lighting. The side entrance
+remains clear. Window and cab corner infills close unintended wall gaps. Rails use
+continuous steel head/web/foot sections, closer wooden sleepers, fastening plates
+and gravel shoulders in both train scenes. Path positions and headings are evaluated
+on the actual curve between arc-length samples to remove stepping while turning.
+
+The trailing cars have a subtle speed-dependent sway through their physical
+movement, which passengers feel; it settles when stopped. Both train scenes
+include quiet stereo countryside ambience (wind, birds and insects), streamed
+in a crossfaded loop. TrainAmbience volume is adjustable on the train root.
+Janney knuckle couplers open and close with their existing connection state.

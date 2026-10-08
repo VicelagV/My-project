@@ -24,10 +24,7 @@ namespace AllAboard.Train
             {
                 int section = Mathf.Min(i / samplesPerSection, points.Length - 2);
                 float t = (float)(i - section * samplesPerSection) / samplesPerSection;
-                Vector3 b = points[section], c = points[section + 1];
-                Vector3 a = section > 0 ? points[section - 1] : b * 2f - c;
-                Vector3 d = section + 2 < points.Length ? points[section + 2] : c * 2f - b;
-                samples[i] = 0.5f * ((2f * b) + (-a + c) * t + (2f * a - 5f * b + 4f * c - d) * t * t + (-a + 3f * b - 3f * c + d) * t * t * t);
+                Evaluate(section,t,out samples[i],out _);
                 if (i > 0) distances[i] = distances[i - 1] + Vector3.Distance(samples[i], samples[i - 1]);
             }
         }
@@ -37,8 +34,21 @@ namespace AllAboard.Train
             int low = 0, high = distances.Length - 1;
             while (high - low > 1) { int middle = (low + high) / 2; if (distances[middle] <= distance) low = middle; else high = middle; }
             float t = Mathf.InverseLerp(distances[low], distances[high], distance);
-            position = transform.TransformPoint(Vector3.Lerp(samples[low], samples[high], t));
-            rotation = Quaternion.LookRotation(transform.TransformDirection((samples[high] - samples[low]).normalized), Vector3.up);
+            int section = Mathf.Min(low / samplesPerSection, points.Length - 2);
+            float curveT = (low - section * samplesPerSection + t) / samplesPerSection;
+            Evaluate(section, curveT, out Vector3 local, out Vector3 tangent);
+            position = transform.TransformPoint(local);
+            rotation = Quaternion.LookRotation(transform.TransformDirection(tangent), Vector3.up);
+        }
+        private void Evaluate(int section,float t,out Vector3 position,out Vector3 tangent)
+        {
+            Vector3 b=points[section],c=points[section+1];
+            Vector3 a=section>0?points[section-1]:b*2f-c;
+            Vector3 d=section+2<points.Length?points[section+2]:c*2f-b;
+            Vector3 quadratic=2f*a-5f*b+4f*c-d,cubic=-a+3f*b-3f*c+d;
+            position=0.5f*(2f*b+(-a+c)*t+quadratic*t*t+cubic*t*t*t);
+            tangent=(0.5f*((-a+c)+2f*quadratic*t+3f*cubic*t*t)).normalized;
+            if(tangent.sqrMagnitude<0.001f)tangent=(c-b).normalized;
         }
     }
 }

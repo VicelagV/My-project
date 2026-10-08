@@ -27,7 +27,9 @@ Stop before a junction, leave the conductor seat, approach the trackside lever
 with empty hands, aim at it and press E to cycle its mounted route label. The
 lever moves, highlights white and receives the player's hand interaction.
 Switches lock while the train moves or any car, including a detached car, reaches
-the protected junction area. Changing upcoming points preserves train position,
+the actual point where the rails begin to split. Levers sit 30 metres before that
+point, and remain usable after the locomotive passes the lever while its nose
+is still short of the split. Changing upcoming points preserves train position,
 resources and coupler connections. The default itinerary follows Safe to Terminum.
 
 Aim at a station's COAL crate and press E to take a physical coal piece. Supplies

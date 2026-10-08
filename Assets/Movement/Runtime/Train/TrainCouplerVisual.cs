@@ -11,7 +11,7 @@ namespace AllAboard.Train
         private void Update()
         {
             if (coupler == null) return;
-            if (link != null) link.localRotation = Quaternion.Euler(coupler.Connected ? 90f : 30f, 0f, 0f);
+            if (link != null) link.localRotation = Quaternion.Euler(0f, coupler.Connected ? 0f : -65f, 0f);
             if (lockIndicator != null)
             {
                 if (tint == null) tint = new MaterialPropertyBlock();

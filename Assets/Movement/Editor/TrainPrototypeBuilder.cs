@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using AllAboard.Movement;
 using AllAboard.Train;
 using UnityEditor;
@@ -67,6 +68,18 @@ namespace AllAboard.Editor
                 AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/TrainSteamLoop.wav"),
                 AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/TrainRollingLoop.wav"));
             DamageableComponent speedometer = AddCabControls(controller, cars[0]);
+            foreach (TrainCar car in cars)
+                foreach (PrototypeInteractable control in car.GetComponentsInChildren<PrototypeInteractable>())
+                {
+                    Renderer[] geometry = control is TrainLadder ? car.GetComponentsInChildren<Renderer>().Where(x => x.name == "Ladder Rung" || x.gameObject == control.gameObject).ToArray() : control.GetComponentsInChildren<Renderer>();
+                    control.gameObject.AddComponent<ControlHighlight>().Configure(
+                        AssetDatabase.LoadAssetAtPath<Material>("Assets/Movement/Materials/HoverOutline.mat"), geometry);
+                    if (control is TrainDoor)
+                        foreach (Transform child in control.transform)
+                            if (child.name.Contains("Door Button")) child.gameObject.AddComponent<TrainButton>().Configure(new Vector3(child.localPosition.x > 1.9f ? -0.05f : 0.05f, 0f, 0f));
+                    if (control is TrainCoupler coupler)
+                        control.gameObject.AddComponent<TrainButton>().Configure(new Vector3(0f, 0f, coupler.IsFront ? -0.05f : 0.05f));
+                }
             controller.gameObject.AddComponent<TrainDebugHud>().Configure(controller, speedometer);
             for (int i = 0; i < 10; i++)
             {
@@ -82,7 +95,7 @@ namespace AllAboard.Editor
             }
             var player = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Movement/Prefabs/PrototypePlayer.prefab"), scene);
             player.transform.position = new Vector3(3f, 1.2f, 12f);
-            player.GetComponent<PlayerInteraction>().ShowInteractionPrompts(false);
+            player.GetComponent<PlayerInteraction>().ShowInteractionPrompts(true);
             player.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
             var sun = new GameObject("Sun").AddComponent<Light>(); sun.type = LightType.Directional; sun.intensity = 1.6f;
             sun.shadows = LightShadows.Soft; sun.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
@@ -168,38 +181,111 @@ namespace AllAboard.Editor
         private static DamageableComponent AddCabControls(TrainController controller, TrainCar locomotive)
         {
             Transform cab = locomotive.transform;
-            Box(cab, "Cab Control Board", new Vector3(0f, 2.55f, 4.2f), new Vector3(3.3f, 2.7f, 0.2f), metal);
+            Box(cab, "Cab Bulkhead", new Vector3(0f, 2.55f, 4.2f), new Vector3(3.3f, 2.7f, 0.2f), metal);
+            Box(cab, "Driver Instrument Panel", new Vector3(-0.8f, 2.75f, 3.0f), new Vector3(1.85f, 0.85f, 0.12f), metal);
+            Material face = Material("GaugeFace", new Color(0.86f, 0.83f, 0.72f));
             DamageableComponent damage = null;
             foreach (InstrumentKind kind in new[] { InstrumentKind.Steam, InstrumentKind.Pressure, InstrumentKind.Speed })
             {
-                float x = kind == InstrumentKind.Steam ? -1.1f : kind == InstrumentKind.Pressure ? 0f : 1.1f;
-                TextMesh text = Label(cab, kind.ToString(), new Vector3(x, 3.3f, 4.05f), 0.035f);
-                if (kind == InstrumentKind.Speed) damage = text.gameObject.AddComponent<DamageableComponent>();
-                text.gameObject.AddComponent<TrainInstrument>().Configure(controller, kind, text, kind == InstrumentKind.Speed ? damage : null);
-            }
-            var actions = new[] { ControlKind.Brake, ControlKind.Reverse,
-                ControlKind.Firebox, ControlKind.Vent, ControlKind.Whistle, ControlKind.Bell, ControlKind.Door, ControlKind.DamageSpeedometer };
-            for (int i = 0; i < actions.Length; i++)
-            {
-                Vector3 p = new Vector3(-0.9f + (i % 4) * 0.6f, 2.6f - (i / 4) * 0.6f, 4f);
-                var button = Box(cab, actions[i].ToString(), p, new Vector3(0.3f, 0.22f, 0.18f), actions[i] == ControlKind.Firebox ? shell : doorMaterial);
-                AudioClip clip = actions[i] == ControlKind.Whistle ? AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/TrainWhistle.wav") :
-                    actions[i] == ControlKind.Bell ? AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/TrainBell.wav") : null;
-                button.AddComponent<TrainControl>().Configure(controller, actions[i], locomotive.GetComponentInChildren<TrainDoor>(), damage, clip);
+                float x = -1.38f + (int)kind * 0.58f;
+                var dial = GameObject.CreatePrimitive(PrimitiveType.Cylinder); dial.name = kind + " Dial";
+                dial.transform.SetParent(cab, false); dial.transform.localPosition = new Vector3(x, 2.86f, 2.9f);
+                dial.transform.localRotation = Quaternion.Euler(90f, 0f, 0f); dial.transform.localScale = new Vector3(0.46f, 0.025f, 0.46f);
+                dial.GetComponent<Renderer>().sharedMaterial = face;
+                // Tick marks and needles live in the cab's XY plane, independent of cylinder scaling.
+                var pivot = new GameObject(kind + " Needle Pivot").transform; pivot.SetParent(cab, false);
+                pivot.localPosition = new Vector3(x, 2.86f, 2.865f);
+                VisualBox(pivot, "Needle", new Vector3(0f, 0.075f, 0f), new Vector3(0.015f, 0.15f, 0.008f), doorMaterial);
+                for (int tick = 0; tick <= 10; tick++)
+                {
+                    float angle = Mathf.Lerp(135f, -135f, tick / 10f);
+                    Vector3 radial = Quaternion.Euler(0f, 0f, angle) * Vector3.up;
+                    var mark = Box(cab, "Gauge Tick", new Vector3(x, 2.86f, 2.865f) + radial * 0.19f,
+                        new Vector3(0.012f, tick % 5 == 0 ? 0.045f : 0.023f, 0.007f), metal);
+                    Object.DestroyImmediate(mark.GetComponent<Collider>()); mark.transform.localRotation = Quaternion.Euler(0f, 0f, angle);
+                }
+                TextMesh text = Label(cab, kind.ToString(), new Vector3(x, 2.48f, 2.88f), 0.016f);
+                if (kind == InstrumentKind.Speed) damage = dial.AddComponent<DamageableComponent>();
+                var instrument = dial.AddComponent<TrainInstrument>(); instrument.Configure(controller, kind, text, kind == InstrumentKind.Speed ? damage : null);
+                instrument.ConfigureDial(pivot);
+                Label(cab, "0", new Vector3(x - 0.15f, 2.68f, 2.85f), 0.012f);
+                Label(cab, kind == InstrumentKind.Speed ? "15" : "100", new Vector3(x + 0.15f, 2.68f, 2.85f), 0.012f);
             }
             var seatRoot = new GameObject("Conductor Seat"); seatRoot.transform.SetParent(cab, false);
             ConductorSeat seat = seatRoot.AddComponent<ConductorSeat>(); seat.Configure(locomotive);
             Box(seatRoot.transform, "Seat Cushion", new Vector3(-0.85f, 1.75f, 1.6f), new Vector3(0.8f, 0.2f, 0.8f), doorMaterial);
             Box(seatRoot.transform, "Seat Back", new Vector3(-0.85f, 2.2f, 1.2f), new Vector3(0.8f, 0.9f, 0.15f), shell);
-            Box(seatRoot.transform, "Throttle Armrest", new Vector3(-1.4f, 1.95f, 1.6f), new Vector3(0.25f, 0.15f, 1.1f), metal);
-            var leverRoot = new GameObject("Seat Throttle Lever"); leverRoot.transform.SetParent(cab, false);
-            leverRoot.transform.localPosition = new Vector3(-1.4f, 2.03f, 2f);
-            VisualBox(leverRoot.transform, "Lever Shaft", new Vector3(0f, 0.19f, 0f), new Vector3(0.045f, 0.38f, 0.045f), metal);
-            var knob = GameObject.CreatePrimitive(PrimitiveType.Sphere); knob.name = "Throttle Grip";
-            knob.transform.SetParent(leverRoot.transform, false); knob.transform.localPosition = new Vector3(0f, 0.38f, 0f);
-            knob.transform.localScale = Vector3.one * 0.18f; knob.GetComponent<Renderer>().sharedMaterial = doorMaterial;
-            leverRoot.AddComponent<TrainThrottleLever>().Configure(controller, seat, knob.transform);
+            Label(cab, "DRIVER", new Vector3(-0.85f, 2.8f, 1.12f), 0.022f).transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            foreach (float x in new[] { -1.4f, -0.3f })
+                Box(seatRoot.transform, "Armrest", new Vector3(x, 1.95f, 1.6f), new Vector3(0.25f, 0.15f, 1.1f), metal);
+            AddLever<TrainThrottleLever>(cab, "THROTTLE", -1.4f, controller, seat);
+            AddLever<TrainBrakeLever>(cab, "BRAKE", -0.3f, controller, seat);
+            var reverse = AddButton(cab, "REVERSE", new Vector3(-0.3f, 2.08f, 1.4f), new Vector3(0.18f, 0.09f, 0.18f), controller, ControlKind.Reverse);
+            reverse.GetComponent<TrainButton>().Configure(new Vector3(0f, -0.045f, 0f));
+            reverse.transform.Find("REVERSE Label").localRotation = Quaternion.Euler(90f, 0f, 0f);
+            reverse.transform.Find("REVERSE Label").localPosition = new Vector3(0f, 0.65f, -1.6f);
+            foreach (ControlKind action in new[] { ControlKind.Whistle, ControlKind.Bell, ControlKind.Door, ControlKind.DamageSpeedometer })
+            {
+                int index = action == ControlKind.Whistle ? 0 : action == ControlKind.Bell ? 1 : action == ControlKind.Door ? 2 : 3;
+                string title = action == ControlKind.DamageSpeedometer ? "TEST DAMAGE" : action.ToString().ToUpperInvariant();
+                AudioClip clip = action == ControlKind.Whistle ? AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/TrainWhistle.wav") :
+                    action == ControlKind.Bell ? AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/TrainBell.wav") : null;
+                var button = AddButton(cab, title, new Vector3(-1.48f + index * 0.42f, 2.14f, 2.9f), new Vector3(0.18f, 0.16f, 0.1f), controller, action);
+                button.GetComponent<TrainControl>().Configure(controller, action, locomotive.GetComponentInChildren<TrainDoor>(), damage, clip);
+            }
+            // A real side-mounted wheel, rather than a button on the main dashboard.
+            var valve = new GameObject("Pressure Valve"); valve.transform.SetParent(cab, false);
+            valve.transform.localPosition = new Vector3(-1.68f, 2.62f, 2.08f);
+            valve.transform.localRotation = Quaternion.Euler(0f, -65f, 0f);
+            valve.AddComponent<SphereCollider>().radius = 0.22f;
+            for (int spoke = 0; spoke < 8; spoke++)
+            {
+                float angle = spoke * 45f; Vector3 radial = Quaternion.Euler(0f, 0f, angle) * Vector3.up;
+                VisualBox(valve.transform, "Valve Rim", radial * 0.18f, new Vector3(0.15f, 0.035f, 0.035f), doorMaterial);
+                valve.transform.GetChild(spoke).localRotation = Quaternion.Euler(0f, 0f, angle);
+            }
+            VisualBox(valve.transform, "Valve Spoke", Vector3.zero, new Vector3(0.34f, 0.035f, 0.035f), metal);
+            VisualBox(valve.transform, "Valve Spoke", Vector3.zero, new Vector3(0.035f, 0.34f, 0.035f), metal);
+            var grip = new GameObject("Valve Hand Contact").transform; grip.SetParent(valve.transform, false); grip.localPosition = new Vector3(0.18f, 0f, -0.06f);
+            valve.AddComponent<TrainControl>().Configure(controller, ControlKind.Vent);
+            valve.AddComponent<TrainButton>().Configure(Vector3.zero, true, grip);
+            Label(cab, "PRESSURE VALVE", new Vector3(-1.65f, 2.97f, 2.1f), 0.012f).transform.localRotation = valve.transform.localRotation;
+            // Open firebox: the large central opening contains only an intake trigger.
+            Vector3 mouth = new Vector3(0.72f, 1.98f, 3.55f);
+            var furnace = new GameObject("Furnace Intake"); furnace.transform.SetParent(cab, false); furnace.transform.localPosition = mouth;
+            var intake = furnace.AddComponent<BoxCollider>(); intake.size = new Vector3(1.1f, 0.9f, 0.7f); intake.isTrigger = true;
+            furnace.AddComponent<TrainFurnace>().Configure(controller.Resources);
+            foreach (float side in new[] { -1f, 1f })
+                Box(furnace.transform, "Firebox Side", new Vector3(side * 0.63f, 0f, 0f), new Vector3(0.16f, 1.22f, 0.7f), metal);
+            foreach (float side in new[] { -1f, 1f })
+                Box(furnace.transform, "Firebox Edge", new Vector3(0f, side * 0.53f, 0f), new Vector3(1.1f, 0.16f, 0.7f), metal);
+            var back = Box(furnace.transform, "Firebox Coal Target", new Vector3(0f, 0f, 0.38f), new Vector3(1.1f, 0.9f, 0.08f), doorMaterial);
+            // The recessed back is also the E interaction target; raycasts do not stop at triggers.
+            back.AddComponent<TrainControl>().Configure(controller, ControlKind.Firebox);
+            Label(cab, "FURNACE", mouth + new Vector3(0f, 0.72f, -0.36f), 0.024f);
             return damage;
+        }
+
+        private static void AddLever<T>(Transform cab, string title, float x, TrainController controller, ConductorSeat seat) where T : TrainLever
+        {
+            var root = new GameObject(title + " Lever"); root.transform.SetParent(cab, false);
+            root.transform.localPosition = new Vector3(x, 2.03f, 2f);
+            VisualBox(root.transform, "Lever Shaft", new Vector3(0f, 0.19f, 0f), new Vector3(0.045f, 0.38f, 0.045f), metal);
+            var knob = GameObject.CreatePrimitive(PrimitiveType.Sphere); knob.name = title + " Grip";
+            knob.transform.SetParent(root.transform, false); knob.transform.localPosition = new Vector3(0f, 0.38f, 0f);
+            knob.transform.localScale = Vector3.one * 0.18f; knob.GetComponent<Renderer>().sharedMaterial = doorMaterial;
+            root.AddComponent<T>().Configure(controller, seat, knob.transform);
+            var label = Label(cab, title, new Vector3(x, 2.05f, 1.8f), 0.010f); label.transform.localRotation = Quaternion.Euler(90f, 0f, 90f);
+        }
+        private static GameObject AddButton(Transform cab, string title, Vector3 position, Vector3 size, TrainController train, ControlKind kind)
+        {
+            var button = Box(cab, title + " Button", position, size, doorMaterial);
+            button.AddComponent<TrainControl>().Configure(train, kind);
+            button.AddComponent<TrainButton>();
+            // Labels use inverse scale so titles stay small and have consistent character size.
+            var label = Label(button.transform, title, new Vector3(0f, 1.05f, -0.6f), 0.010f);
+            label.transform.localScale = new Vector3(1f / size.x, 1f / size.y, 1f / size.z);
+            return button;
         }
 
         private static void BuildRails(RailPath path)

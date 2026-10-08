@@ -32,6 +32,14 @@ namespace AllAboard.Movement
         private Transform handControlTarget;
         public bool IsUsingHandControl => handControlTarget != null;
         public void SetHandControlTarget(Transform target) => handControlTarget = target;
+        private Transform pressedButton;
+        private float buttonReachTime;
+        public bool IsPressingButton => pressedButton != null && buttonReachTime > 0f;
+        public void ReachForButton(Transform target)
+        { if (heldObject == null && handControlTarget == null) { pressedButton = target; buttonReachTime = 0.4f; } }
+        private Transform ladderCarrier;
+        private float climbPhase;
+        public void BeginLadderHands(Transform carrier) { ladderCarrier = carrier; climbPhase = 0f; }
         private float gripHalfWidth;
         private float standingEyeHeight;
         private PlayerInteraction interaction;
@@ -84,6 +92,11 @@ namespace AllAboard.Movement
 
         private void LateUpdate()
         {
+            if (buttonReachTime > 0f)
+            {
+                buttonReachTime = Mathf.Max(0f, buttonReachTime - Time.deltaTime);
+                if (buttonReachTime <= 0f) pressedButton = null;
+            }
             if (cameraPivot != null)
             {
                 Vector3 eye = cameraPivot.localPosition;
@@ -107,8 +120,8 @@ namespace AllAboard.Movement
                 return;
             }
             float blend = 1f - Mathf.Exp(-14f * Time.deltaTime);
-            if (leftHand != null) leftHand.localPosition = Vector3.Lerp(leftHand.localPosition, leftRest, blend);
-            if (rightHand != null) rightHand.localPosition = Vector3.Lerp(rightHand.localPosition, rightRest, blend);
+            if (!motor.IsClimbing && leftHand != null) leftHand.localPosition = Vector3.Lerp(leftHand.localPosition, leftRest, blend);
+            if (!motor.IsClimbing && rightHand != null) rightHand.localPosition = Vector3.Lerp(rightHand.localPosition, rightRest, blend);
             Vector2 delta = input.HasControl ? Vector2.ClampMagnitude(input.Look, 35f) : Vector2.zero;
             float strength = motor.Grounded ? Mathf.Clamp01(motor.HorizontalSpeed / 5f) : 0f;
             bobPhase += Time.deltaTime * motor.HorizontalSpeed * 2.2f;
@@ -117,8 +130,28 @@ namespace AllAboard.Movement
             hands.localPosition = Vector3.Lerp(hands.localPosition, handRestPosition + bob + sway + inertia.Offset,
                 1f - Mathf.Exp(-14f * Time.deltaTime));
             hands.localRotation = InertiaRotation;
-            if (handControlTarget != null && rightHand != null)
+            if (motor.IsClimbing && ladderCarrier != null)
+            {
+                climbPhase += Time.deltaTime * 12f;
+                float height = ladderCarrier.InverseTransformPoint(transform.position).y + 1.15f;
+                PoseLadderHand(leftHand, 0.8f, height + Mathf.Sin(climbPhase) * 0.25f);
+                PoseLadderHand(rightHand, 1.4f, height + Mathf.Sin(climbPhase + Mathf.PI) * 0.25f);
+            }
+            else if (handControlTarget != null && rightHand != null)
                 rightHand.position = handControlTarget.position + handControlTarget.right * 0.11f;
+            else if (IsPressingButton && rightHand != null)
+            {
+                float contact = Mathf.Min((0.4f - buttonReachTime) / 0.07f, buttonReachTime / 0.1f);
+                rightHand.position = Vector3.Lerp(rightHand.position, pressedButton.position, Mathf.Clamp01(contact));
+                if (buttonReachTime <= 0f) pressedButton = null;
+            }
+        }
+        private void PoseLadderHand(Transform hand, float x, float height)
+        {
+            if (hand == null) return;
+            float rung = 1.4f + Mathf.Round((Mathf.Clamp(height, 1.4f, 3.8f) - 1.4f) / 0.3f) * 0.3f;
+            hand.position = Vector3.Lerp(hand.position, ladderCarrier.TransformPoint(new Vector3(x, rung, -3.35f)),
+                1f - Mathf.Exp(-22f * Time.deltaTime));
         }
     }
 }

@@ -6,6 +6,13 @@ namespace AllAboard.Train
         [SerializeField] private TrainCar storageCar;
         [SerializeField] private RigidbodyInterpolation freeInterpolation = RigidbodyInterpolation.Interpolate;
         [SerializeField] private CollisionDetectionMode freeCollisionMode = CollisionDetectionMode.ContinuousDynamic;
+        private bool consumed;
+        public bool TryFuel(TrainResources resources)
+        {
+            if (consumed || IsStored || resources == null || !resources.AddCoal()) return false;
+            consumed = true;
+            return true;
+        }
         public bool IsStored => storageCar != null;
         public TrainCar StorageCar => storageCar;
 

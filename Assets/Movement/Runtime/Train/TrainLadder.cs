@@ -15,7 +15,9 @@ namespace AllAboard.Train
             if (car == null || actor == null) return false;
             FirstPersonMotor motor = actor.GetComponent<FirstPersonMotor>();
             Vector3 local = car.transform.InverseTransformPoint(actor.transform.position);
-            return motor != null && motor.BeginClimb(car.transform, local.y > 3f ? bottom : top);
+            if (motor == null || !motor.BeginClimb(car.transform, local.y > 3f ? bottom : top)) return false;
+            actor.GetComponent<FirstPersonView>().BeginLadderHands(car.transform);
+            return true;
         }
     }
 }

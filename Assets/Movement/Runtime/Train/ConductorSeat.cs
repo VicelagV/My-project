@@ -7,7 +7,7 @@ namespace AllAboard.Train
     {
         [SerializeField] private TrainCar car;
         [SerializeField] private Vector3 feet = new Vector3(-0.85f, 1.45f, 1.6f);
-        [SerializeField] private Vector3 exit = new Vector3(0f, 1.18f, 1.2f);
+        [SerializeField] private Vector3 exit = new Vector3(0.6f, 1.18f, 1.0f);
         private FirstPersonMotor occupant;
         public FirstPersonMotor Occupant => occupant != null && occupant.IsSeated ? occupant : null;
         public override string Prompt => Occupant == null ? "E: sit in conductor's seat" : "E: stand up";

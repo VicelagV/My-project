@@ -102,13 +102,142 @@ namespace AllAboard.Movement.Tests
         }
 
         [Test]
-        public void SceneOnlyHasGaugeLabelsAndNoThrottleButtons()
+        public void CabHasSmallTitlesDialGaugesAndTwoHandLevers()
         {
             Assert.That(scene.GetRootGameObjects().SelectMany(x => x.GetComponentsInChildren<MonoBehaviour>(true)).Any(x => x == null), Is.False, "Scene must have no missing scripts.");
             var labels = scene.GetRootGameObjects().SelectMany(x => x.GetComponentsInChildren<TextMesh>()).ToArray();
-            Assert.That(labels.Length, Is.EqualTo(3));
-            Assert.That(labels.All(x => x.GetComponent<TrainInstrument>() != null), Is.True);
+            Assert.That(labels.Length, Is.GreaterThan(12));
+            Assert.That(labels.All(x => x.characterSize <= 0.025f), Is.True);
+            Assert.That(cars[0].GetComponentsInChildren<TrainInstrument>().All(x => x.Needle != null), Is.True);
+            Assert.That(cars[0].GetComponentsInChildren<TrainBrakeLever>().Length, Is.EqualTo(1));
+            Assert.That(cars[0].GetComponentsInChildren<TrainFurnace>().Length, Is.EqualTo(1));
+            Assert.That(cars[0].GetComponentsInChildren<PrototypeInteractable>().All(x => x.GetComponent<ControlHighlight>() != null), Is.True);
             Assert.That(cars[0].GetComponentsInChildren<TrainThrottleLever>().Length, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator ThrownCoalFeedsFurnaceOnceOnStationaryAndMovingTrain()
+        {
+            var intake = cars[0].GetComponentInChildren<TrainFurnace>().GetComponent<BoxCollider>();
+            for (int moving = 0; moving < 2; moving++)
+            {
+                train.Resources.SetLevels(10f, 40f); train.Throttle = 1f;
+                train.enabled = moving == 1;
+                if (moving == 1) yield return Wait(1.5f);
+                float before = train.Resources.Steam;
+                int stock = train.Resources.CoalSupply;
+                var coal = scene.GetRootGameObjects().SelectMany(x => x.GetComponentsInChildren<CoalItem>()).First(x => x.IsStored);
+                var item = coal.GetComponent<PickupObject>();
+                Assert.That(item.BeginHold(actor.GetComponent<CharacterController>()), Is.True);
+                item.transform.position = intake.transform.position - cars[0].transform.forward * 1.2f;
+                item.Body.position = item.transform.position;
+                item.Release(cars[0].Body.GetPointVelocity(item.transform.position) + cars[0].transform.forward * 12f);
+                var body = item.Body;
+                Physics.SyncTransforms();
+                yield return Wait(0.35f);
+                Assert.That(coal == null, Is.True, "Throw " + moving + " failed: coal=" + (coal != null ? intake.transform.InverseTransformPoint(coal.transform.position).ToString() + " velocity=" + body.linearVelocity : "destroyed"));
+                Assert.That(train.Resources.CoalSupply, Is.EqualTo(stock - 1), "Repeated trigger callbacks must not consume twice.");
+                Assert.That(train.Resources.Steam, Is.EqualTo(before + 40f).Within(0.3f));
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator FurnaceIgnoresHeldWeldedAndNonCoalItems()
+        {
+            var furnace = cars[0].GetComponentInChildren<TrainFurnace>();
+            var coal = cars[1].GetComponentsInChildren<CoalItem>().First();
+            var item = coal.GetComponent<PickupObject>();
+            Assert.That(item.BeginHold(actor.GetComponent<CharacterController>()), Is.True);
+            item.transform.position = furnace.transform.position; Physics.SyncTransforms();
+            yield return Wait(0.15f);
+            Assert.That(train.Resources.CoalSupply, Is.EqualTo(10));
+            Assert.That(item != null && item.IsHeld, Is.True);
+            var surface = cars[0].transform.Find("Walkable Floor").GetComponent<Collider>();
+            Assert.That(item.WeldTo(surface, item.transform.position), Is.True);
+            yield return Wait(0.15f);
+            Assert.That(train.Resources.CoalSupply, Is.EqualTo(10));
+            var scrap = scene.GetRootGameObjects().SelectMany(x => x.GetComponentsInChildren<PickupObject>()).First(x => x.GetComponent<CoalItem>() == null);
+            scrap.transform.position = furnace.transform.position; scrap.Body.useGravity = false; Physics.SyncTransforms();
+            yield return Wait(0.15f);
+            Assert.That(scrap != null, Is.True); Assert.That(train.Resources.CoalSupply, Is.EqualTo(10));
+        }
+
+        [UnityTest]
+        public IEnumerator BrakeDragRequiresSeatAndKeepsSelectedStrength()
+        {
+            actor.enabled = false;
+            var lever = cars[0].GetComponentInChildren<TrainBrakeLever>();
+            Assert.That(actor.TryGrabThrottle(lever), Is.False);
+            var seat = cars[0].GetComponentInChildren<ConductorSeat>(); Assert.That(seat.Interact(actor), Is.True);
+            Assert.That(actor.TryGrabThrottle(lever), Is.True);
+            actor.DragThrottle(new Vector2(400f, 150f));
+            Assert.That(train.BrakeAmount, Is.EqualTo(0.5f)); Assert.That(train.Braking, Is.True);
+            yield return Wait(0.15f);
+            var hand = actor.transform.Find("Player Camera/Floating Hands/Right Hand");
+            Assert.That(Vector3.Distance(hand.position, lever.Handle.position + lever.Handle.right * 0.11f), Is.LessThan(0.015f));
+            actor.ReleaseThrottle(); Assert.That(train.BrakeAmount, Is.EqualTo(0.5f));
+            train.Throttle = 1f; train.Braking = false; StepFor(2f); float speed = train.Speed;
+            train.BrakeAmount = 0.5f; train.Step(0.2f); float halfDeceleration = speed - train.Speed;
+            train.BrakeAmount = 1f; speed = train.Speed; train.Step(0.2f);
+            Assert.That(speed - train.Speed, Is.EqualTo(halfDeceleration * 2f).Within(0.001f));
+        }
+
+        [UnityTest]
+        public IEnumerator ButtonDepressesHandTouchesAndValveTurnsWithHand()
+        {
+            actor.enabled = false;
+            var reverse = Control(ControlKind.Reverse);
+            Assert.That(reverse.Interact(actor), Is.False, "Reverse belongs to the seated driver.");
+            Assert.That(cars[0].GetComponentInChildren<ConductorSeat>().Interact(actor), Is.True);
+            Vector3 rest = reverse.transform.localPosition;
+            Assert.That(reverse.Interact(actor), Is.True); Assert.That(train.Reversing, Is.True);
+            yield return Wait(0.12f);
+            Assert.That(reverse.transform.localPosition.y, Is.LessThan(rest.y - 0.03f));
+            var view = actor.GetComponent<FirstPersonView>(); Assert.That(view.IsPressingButton, Is.True);
+            var hand = actor.transform.Find("Player Camera/Floating Hands/Right Hand");
+            Assert.That(Vector3.Distance(hand.position, reverse.transform.position), Is.LessThan(0.06f));
+            yield return Wait(0.5f);
+            Assert.That(Vector3.Distance(reverse.transform.localPosition, rest), Is.LessThan(0.001f));
+            Assert.That(view.IsPressingButton, Is.False);
+            var valve = Control(ControlKind.Vent); Quaternion rotation = valve.transform.localRotation;
+            Assert.That(valve.Interact(actor), Is.True); yield return Wait(0.12f);
+            Assert.That(Quaternion.Angle(rotation, valve.transform.localRotation), Is.GreaterThan(60f));
+            Assert.That(Vector3.Distance(hand.position, valve.transform.Find("Valve Hand Contact").position), Is.LessThan(0.06f));
+            Assert.That(train.Resources.Pressure, Is.EqualTo(20f));
+        }
+
+        [UnityTest]
+        public IEnumerator LadderHandsReachRungsAndReturnAfterClimbing()
+        {
+            var motor = actor.GetComponent<FirstPersonMotor>();
+            var cc = actor.GetComponent<CharacterController>(); cc.enabled = false;
+            actor.transform.position = cars[0].transform.TransformPoint(new Vector3(1.1f, 1.18f, -3f)); cc.enabled = true;
+            motor.enabled = true;
+            Assert.That(cars[0].GetComponentInChildren<TrainLadder>().Interact(actor), Is.True);
+            yield return Wait(0.4f);
+            var hands = actor.transform.Find("Player Camera/Floating Hands");
+            Vector3 left = cars[0].transform.InverseTransformPoint(hands.Find("Left Hand").position);
+            Vector3 right = cars[0].transform.InverseTransformPoint(hands.Find("Right Hand").position);
+            Assert.That(left.z, Is.EqualTo(-3.35f).Within(0.1f)); Assert.That(right.z, Is.EqualTo(-3.35f).Within(0.1f));
+            Assert.That(right.x - left.x, Is.GreaterThan(0.4f));
+            yield return Wait(1.2f); Assert.That(motor.IsClimbing, Is.False);
+            Assert.That(Vector3.Distance(hands.Find("Right Hand").position, cars[0].transform.TransformPoint(right)), Is.GreaterThan(0.3f));
+        }
+
+        [Test]
+        public void GaugeNeedlesFollowValuesAndHoverOutlinesCanBeCleared()
+        {
+            var gauges = cars[0].GetComponentsInChildren<TrainInstrument>();
+            var before = gauges.Select(x => x.Needle.localRotation).ToArray();
+            train.Resources.SetLevels(90f, 95f); train.Throttle = 1f; StepFor(2f);
+            for (int i = 0; i < gauges.Length; i++)
+            {
+                gauges[i].Refresh(); Assert.That(Quaternion.Angle(before[i], gauges[i].Needle.localRotation), Is.GreaterThan(1f));
+                gauges[i].SetHighlighted(true);
+                var highlight = gauges[i].GetComponent<ControlHighlight>(); Assert.That(highlight.Highlighted, Is.True);
+                Assert.That(highlight.GetComponentsInChildren<Renderer>().Any(x => x.name == "Control Hover Outline" && x.enabled), Is.True);
+                gauges[i].SetHighlighted(false); Assert.That(highlight.Highlighted, Is.False);
+            }
         }
 
         [Test]
@@ -245,7 +374,7 @@ namespace AllAboard.Movement.Tests
             Assert.That(door.IsOpen, Is.False); yield return Wait(0.8f);
             Assert.That(cars[0].transform.Find("Sliding Door").localPosition.y, Is.EqualTo(2.25f).Within(0.01f));
             TrainInstrument speedometer = cars[0].GetComponentsInChildren<TrainInstrument>().First(x => x.Condition != null);
-            for (int i = 0; i < 4; i++) Assert.That(Control(ControlKind.DamageSpeedometer).Interact(actor), Is.True);
+            for (int i = 0; i < 4; i++) { Assert.That(Control(ControlKind.DamageSpeedometer).Interact(actor), Is.True); yield return Wait(0.45f); }
             speedometer.Refresh(); Assert.That(speedometer.Condition.IsBroken, Is.True);
             StringAssert.Contains("BROKEN", speedometer.DisplayedText);
             Assert.That(train.Resources.Steam, Is.EqualTo(50f)); Assert.That(train.Resources.Pressure, Is.EqualTo(40f));

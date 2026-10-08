@@ -22,12 +22,12 @@ namespace AllAboard.Movement
         private PickupObject hovered;
         private PickupObject held;
         private PrototypeInteractable hoveredControl;
-        private AllAboard.Train.TrainThrottleLever grabbedLever;
+        private AllAboard.Train.TrainLever grabbedLever;
         [SerializeField] private bool showInteractionPrompts = true;
         public bool IsUsingHandControl => grabbedLever != null;
-        public bool IsPressingHoveredLever => input.GrabPressed && hoveredControl is AllAboard.Train.TrainThrottleLever && !IsHolding && GetComponent<FirstPersonMotor>().IsSeated;
+        public bool IsPressingHoveredLever => input.GrabPressed && hoveredControl is AllAboard.Train.TrainLever && !IsHolding && GetComponent<FirstPersonMotor>().IsSeated;
         public void ShowInteractionPrompts(bool show) => showInteractionPrompts = show;
-        public bool TryGrabThrottle(AllAboard.Train.TrainThrottleLever lever)
+        public bool TryGrabThrottle(AllAboard.Train.TrainLever lever)
         {
             if (grabbedLever != null || lever == null || !lever.BeginGrip(this)) return false;
             grabbedLever = lever;
@@ -72,6 +72,7 @@ namespace AllAboard.Movement
         private void Update()
         {
             SetHovered(null);
+            if (hoveredControl != null) hoveredControl.SetHighlighted(false);
             hoveredControl = null;
             if (cameraPivot == null || !input.HasControl)
             {
@@ -95,7 +96,8 @@ namespace AllAboard.Movement
                 hoveredControl = hit.collider.GetComponentInParent<PrototypeInteractable>();
                 SetHovered(held == null ? hit.collider.GetComponentInParent<PickupObject>() : null);
             }
-            if (input.GrabPressed && hoveredControl is AllAboard.Train.TrainThrottleLever lever && TryGrabThrottle(lever))
+            if (hoveredControl != null) hoveredControl.SetHighlighted(true);
+            if (input.GrabPressed && hoveredControl is AllAboard.Train.TrainLever lever && TryGrabThrottle(lever))
             {
                 DragThrottle(input.Look);
                 return;
@@ -332,6 +334,7 @@ namespace AllAboard.Movement
         private void OnDisable()
         {
             ReleaseThrottle();
+            if (hoveredControl != null) hoveredControl.SetHighlighted(false);
             SetHovered(null);
             Drop();
         }

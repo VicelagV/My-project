@@ -236,8 +236,8 @@ namespace AllAboard.Movement.Tests
             {
                 Vector3 direction = control.transform.position - camera.position;
                 Assert.That(direction.magnitude, Is.LessThan(3f));
-                Assert.That(Physics.Raycast(camera.position, direction.normalized, out RaycastHit hit, 3f), Is.True);
-                Assert.That(hit.collider.GetComponent<TrainControl>(), Is.EqualTo(control));
+                Assert.That(Physics.Raycast(camera.position, direction.normalized, out RaycastHit hit, 3f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), Is.True);
+                Assert.That(hit.collider.GetComponent<TrainControl>(), Is.EqualTo(control), "Target " + control.name + " hit " + hit.collider.name + " at " + hit.point);
             }
             train.enabled = true; driver.Movement = Vector2.one; driver.Jump = true;
             Vector3 local = cars[0].transform.InverseTransformPoint(player.transform.position);

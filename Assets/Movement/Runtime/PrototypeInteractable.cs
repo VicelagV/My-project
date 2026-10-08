@@ -6,6 +6,7 @@ namespace AllAboard.Movement
     {
         public abstract string Prompt { get; }
         public virtual bool AllowedWhileSeated => false;
+        public void SetHighlighted(bool highlighted) => GetComponent<ControlHighlight>()?.SetHighlighted(highlighted);
         public abstract bool Interact(PlayerInteraction actor);
     }
 }

@@ -19,7 +19,9 @@ namespace AllAboard.Train
         private TrainWeight weight;
         public float Speed { get; private set; }
         public float Throttle { get; set; }
-        public bool Braking { get; set; }
+        private float brakeAmount;
+        public float BrakeAmount { get => brakeAmount; set => brakeAmount = Mathf.Clamp01(value); }
+        public bool Braking { get => brakeAmount > 0.001f; set => brakeAmount = value ? 1f : 0f; }
         public bool Reversing { get; set; }
         public float TotalWeight { get; private set; }
         public float HeadDistance => headDistance;
@@ -58,7 +60,7 @@ namespace AllAboard.Train
             float performance = Resources.Performance;
             float target = (Reversing ? -reverseSpeed : forwardSpeed) * Throttle * performance;
             float force = acceleration * referenceWeight / TotalWeight * performance;
-            if (Braking) { target = 0f; force = brakingForce * Resources.BrakeEfficiency; }
+            if (Braking) { target = 0f; force = brakingForce * BrakeAmount * Resources.BrakeEfficiency; }
             else if (Throttle < 0.01f || performance <= 0f) { target = 0f; force = 0.35f; }
             Speed = Mathf.MoveTowards(Speed, target, force * deltaTime);
             float requested = headDistance + Speed * deltaTime;

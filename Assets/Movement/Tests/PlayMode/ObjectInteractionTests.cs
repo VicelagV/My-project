@@ -11,6 +11,7 @@ namespace AllAboard.Movement.Tests
         private GameObject player;
         private GameObject cube;
         private GameObject floor;
+        private GameObject wall;
         private PlayerInteraction interaction;
         private PickupObject item;
 
@@ -38,6 +39,7 @@ namespace AllAboard.Movement.Tests
             Object.DestroyImmediate(player);
             Object.DestroyImmediate(cube);
             Object.DestroyImmediate(floor);
+            if (wall != null) Object.DestroyImmediate(wall);
         }
 
         [UnityTest]
@@ -152,6 +154,75 @@ namespace AllAboard.Movement.Tests
             Transform hands = camera.Find("Floating Hands");
             Assert.That(camera.InverseTransformPoint(hands.Find("Left Hand").position).z, Is.GreaterThan(0.5f));
             Assert.That(camera.InverseTransformPoint(hands.Find("Right Hand").position).z, Is.GreaterThan(0.5f));
+        }
+
+        [UnityTest]
+        public IEnumerator SprintingIntoWallKeepsCubeAndHandsInFrontWithoutPenetration()
+        {
+            player.GetComponent<PlayerInputReader>().enabled = false;
+            var motor = player.GetComponent<FirstPersonMotor>();
+            var driver = player.AddComponent<PlatformMovementDriver>();
+            driver.Motor = motor;
+            wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            wall.transform.position = new Vector3(0f, 2f, 3f);
+            wall.transform.localScale = new Vector3(8f, 4f, 0.5f);
+            Physics.SyncTransforms();
+            Assert.That(interaction.TryPickup(item), Is.True);
+            driver.Movement = Vector2.up;
+            driver.Sprint = true;
+            for (float elapsed = 0f; elapsed < 1.2f; elapsed += Time.deltaTime) yield return null;
+            Transform camera = player.transform.Find("Player Camera");
+            Assert.That(camera.InverseTransformPoint(cube.transform.position).z, Is.GreaterThan(0.5f));
+            Assert.That(Physics.ComputePenetration(cube.GetComponent<BoxCollider>(), cube.transform.position, cube.transform.rotation,
+                wall.GetComponent<Collider>(), wall.transform.position, wall.transform.rotation, out _, out _), Is.False);
+            Transform hands = camera.Find("Floating Hands");
+            foreach (string name in new[] { "Left Hand", "Right Hand" })
+            {
+                Vector3 local = camera.InverseTransformPoint(hands.Find(name).position);
+                Assert.That(local.z, Is.GreaterThan(0.45f));
+                Assert.That(Mathf.Abs(local.x), Is.LessThan(0.65f));
+            }
+            float contactX = player.transform.position.x;
+            float contactZ = player.transform.position.z;
+            driver.Movement = Vector2.one;
+            for (float elapsed = 0f; elapsed < 0.3f; elapsed += Time.deltaTime) yield return null;
+            Assert.That(player.transform.position.x - contactX, Is.GreaterThan(0.5f));
+            Assert.That(camera.InverseTransformPoint(cube.transform.position).z, Is.GreaterThan(0.5f));
+            driver.Movement = Vector2.down;
+            // Include time to brake the previous forward component before backing away.
+            for (float elapsed = 0f; elapsed < 0.6f; elapsed += Time.deltaTime) yield return null;
+            Assert.That(contactZ - player.transform.position.z, Is.GreaterThan(0.5f));
+        }
+
+        [UnityTest]
+        public IEnumerator CrouchedFloorPickupAboveHoleDoesNotLiftOrDropPlayer()
+        {
+            floor.transform.position = new Vector3(0f, 1.97f, 0f);
+            floor.transform.localScale = new Vector3(4f, 0.06f, 4f);
+            player.transform.position = new Vector3(0f, 2.04f, 0f);
+            player.GetComponent<PlayerInputReader>().enabled = false;
+            var motor = player.GetComponent<FirstPersonMotor>();
+            var driver = player.AddComponent<PlatformMovementDriver>();
+            driver.Motor = motor;
+            driver.Crouch = true;
+            cube.transform.position = new Vector3(0f, 2.28f, 0.8f);
+            Physics.SyncTransforms();
+            for (float elapsed = 0f; elapsed < 0.3f; elapsed += Time.deltaTime) yield return null;
+            Transform camera = player.transform.Find("Player Camera");
+            camera.localRotation = Quaternion.Euler(80f, 0f, 0f);
+            float feet = player.transform.position.y;
+            Assert.That(interaction.TryPickup(item), Is.True);
+            for (float elapsed = 0f; elapsed < 0.6f; elapsed += Time.deltaTime)
+            {
+                yield return null;
+                Assert.That(player.transform.position.y, Is.EqualTo(feet).Within(0.04f));
+                Assert.That(motor.Grounded, Is.True);
+                Assert.That(camera.InverseTransformPoint(cube.transform.position).z, Is.GreaterThan(0.5f));
+            }
+            interaction.Drop();
+            for (float elapsed = 0f; elapsed < 0.4f; elapsed += Time.deltaTime) yield return null;
+            Assert.That(player.transform.position.y, Is.EqualTo(feet).Within(0.04f));
+            Assert.That(cube.transform.position.y, Is.GreaterThan(2.2f));
         }
 
         [UnityTest]

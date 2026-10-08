@@ -125,6 +125,28 @@ namespace AllAboard.Movement.Tests
         }
 
         [UnityTest]
+        public IEnumerator LookingDownWithCubeWhileCrouchedKeepsRiderAttached()
+        {
+            driver.Crouch = true;
+            yield return Wait(0.3f);
+            Transform camera = player.transform.Find("Player Camera");
+            camera.localRotation = Quaternion.Euler(80f, 0f, 0f);
+            PickupObject item = SpawnCube(platform.transform.TransformPoint(new Vector3(0.5f, 0.48f, 0.4f)));
+            Assert.That(player.GetComponent<PlayerInteraction>().TryPickup(item), Is.True);
+            Vector3 local = platform.transform.InverseTransformPoint(player.transform.position);
+            yield return Wait(1f);
+            Assert.That(Vector3.Distance(platform.transform.InverseTransformPoint(player.transform.position), local), Is.LessThan(0.08f));
+            Assert.That(motor.Grounded, Is.True);
+            driver.Crouch = false;
+            yield return Wait(0.3f);
+            Assert.That(motor.IsCrouched, Is.False);
+            player.GetComponent<PlayerInteraction>().Drop();
+            yield return Wait(0.5f);
+            Assert.That(Vector3.Distance(platform.transform.InverseTransformPoint(player.transform.position), local), Is.LessThan(0.08f));
+            Assert.That(motor.Grounded, Is.True);
+        }
+
+        [UnityTest]
         public IEnumerator ReleasingCrouchUnderMovingRoofStandsAsSoonAsClear()
         {
             player.transform.position = new Vector3(-1.4f, 0.24f, 0f);
@@ -147,11 +169,12 @@ namespace AllAboard.Movement.Tests
         public Vector2 Movement;
         public bool Crouch;
         public bool Jump;
+        public bool Sprint;
         private void Update()
         {
             if (Motor == null) return;
             Motor.SetCrouched(Crouch);
-            Motor.Simulate(Movement, Jump, Time.deltaTime);
+            Motor.Simulate(Movement, Jump, Time.deltaTime, Sprint);
             Jump = false;
         }
     }

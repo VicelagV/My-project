@@ -15,6 +15,7 @@ namespace AllAboard.Movement
         private RigidbodyInterpolation releasedInterpolation;
         public bool IsHeld { get; private set; }
         public Rigidbody Body => body;
+        public BoxCollider Shape => box;
         public float Radius => Vector3.Scale(box.size, transform.lossyScale).magnitude * 0.5f;
         public Vector3 HalfExtents => Vector3.Scale(box.size, transform.lossyScale) * 0.5f;
         public float GripHalfWidth => Mathf.Abs(box.size.x * transform.lossyScale.x) * 0.5f;

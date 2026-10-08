@@ -21,6 +21,7 @@ namespace AllAboard.Movement
 
         private CharacterController controller;
         private PlayerInputReader input;
+        private PlayerInteraction interaction;
         private Vector3 horizontalVelocity;
         private float verticalVelocity;
         private float groundGraceRemaining;
@@ -110,10 +111,14 @@ namespace AllAboard.Movement
             verticalVelocity = Mathf.Max(verticalVelocity - gravity * deltaTime, -50f);
             float fallSpeed = -verticalVelocity;
             Vector3 relativeStart = transform.position;
-            CollisionFlags collision = controller.Move((horizontalVelocity + airMomentum + Vector3.up * verticalVelocity) * deltaTime);
+            if (interaction == null) interaction = GetComponent<PlayerInteraction>();
+            Vector3 displacement = (horizontalVelocity + airMomentum) * deltaTime;
+            if (interaction != null) displacement = interaction.ConstrainCarryMovement(displacement);
+            CollisionFlags collision = controller.Move(displacement + Vector3.up * verticalVelocity * deltaTime);
             if (!grounded && (collision & CollisionFlags.Below) != 0 && fallSpeed > 3f) Landed?.Invoke(fallSpeed);
             if ((collision & CollisionFlags.Above) != 0 && verticalVelocity > 0f) verticalVelocity = 0f;
-            MovingPlatform nextSupport = verticalVelocity <= 0f && (collision & CollisionFlags.Below) != 0 ? FindSupport() : null;
+            // Pickup collision-pair changes can clear Below for a frame; probe the actual ground.
+            MovingPlatform nextSupport = verticalVelocity <= 0f ? FindSupport() : null;
             if (support != null && nextSupport == null) airMomentum = supportVelocity;
             support = nextSupport;
             if ((collision & CollisionFlags.Below) != 0 && verticalVelocity <= 0f) airMomentum = Vector3.zero;
@@ -161,7 +166,7 @@ namespace AllAboard.Movement
             foreach (RaycastHit hit in Physics.SphereCastAll(feet + Vector3.up * (radius + 0.08f), radius,
                 Vector3.down, 0.2f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
             {
-                if (hit.collider == controller || Vector3.Dot(hit.normal, Vector3.up) < 0.6f || hit.distance >= distance) continue;
+                if (IgnorePlayerCollision(hit.collider) || Vector3.Dot(hit.normal, Vector3.up) < 0.6f || hit.distance >= distance) continue;
                 distance = hit.distance;
                 nearest = hit.collider.GetComponentInParent<MovingPlatform>();
             }
@@ -176,8 +181,15 @@ namespace AllAboard.Movement
             float halfSegment = Mathf.Max(0f, standingHeight * 0.5f - controller.radius);
             foreach (Collider hit in Physics.OverlapCapsule(center - transform.up * halfSegment,
                 center + transform.up * halfSegment, radius, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
-                if (hit != controller && !hit.transform.IsChildOf(transform)) return false;
+                if (!IgnorePlayerCollision(hit) && !hit.transform.IsChildOf(transform)) return false;
             return true;
+        }
+
+        private bool IgnorePlayerCollision(Collider collider)
+        {
+            if (collider == controller || Physics.GetIgnoreCollision(controller, collider)) return true;
+            var item = collider.attachedRigidbody != null ? collider.attachedRigidbody.GetComponent<PickupObject>() : null;
+            return item != null && item.IsHeld;
         }
 
         private void ApplyStance(bool crouched)

@@ -23,6 +23,8 @@ namespace AllAboard.Movement
         private Texture2D dot;
         private bool charging;
         private float chargeTime;
+        private const float CarryGap = 0.025f;
+        private const float MinimumCarryDistance = 0.65f;
         public float Charge => Mathf.Clamp01(chargeTime / chargeDuration);
 
         public bool IsHolding => held != null;
@@ -91,22 +93,78 @@ namespace AllAboard.Movement
             if (held == null || cameraPivot == null) return;
             Vector3 offset = cameraPivot.forward * (holdDistance + (charging ? Charge * 0.15f : 0f))
                 + cameraPivot.up * holdVerticalOffset + cameraPivot.TransformVector(view.InertiaOffset);
-            float distance = offset.magnitude;
-            Vector3 direction = offset / distance;
             Quaternion rotation = cameraPivot.rotation * view.InertiaRotation;
+            // Shape casts do not resolve an overlapping starting volume. Clear it first,
+            // including thin floor edges, before finding the nearest legal grip position.
+            Vector3 origin = ResolveCarryOverlap(cameraPivot.position, rotation);
+            Vector3 target = cameraPivot.position + offset;
+            Vector3 path = target - origin;
+            float distance = path.magnitude;
+            Vector3 direction = path / Mathf.Max(distance, 0.0001f);
             // Match the cube's shape; a bounding sphere pulls it too close when aiming at the floor.
-            foreach (RaycastHit hit in Physics.BoxCastAll(cameraPivot.position, held.HalfExtents,
+            foreach (RaycastHit hit in Physics.BoxCastAll(origin, held.HalfExtents,
                 direction, rotation, distance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
             {
                 if (hit.collider == playerCollider || hit.collider.attachedRigidbody == held.Body) continue;
-                distance = Mathf.Min(distance, Mathf.Max(0f, hit.distance - 0.02f));
+                distance = Mathf.Min(distance, Mathf.Max(0f, hit.distance - CarryGap));
             }
             // Held items are constrained poses. Free items resume normal fixed-step simulation on release.
-            Vector3 position = cameraPivot.position + direction * distance;
+            Vector3 position = ResolveCarryOverlap(origin + direction * distance, rotation);
             held.Body.position = position;
             held.Body.rotation = rotation;
             // Rigidbody setters can leave the rendered transform on the previous physics pose.
             held.transform.SetPositionAndRotation(position, rotation);
+        }
+
+        public Vector3 ConstrainCarryMovement(Vector3 movement)
+        {
+            if (held == null || cameraPivot == null || movement.sqrMagnitude < 1e-12f) return movement;
+            Quaternion rotation = cameraPivot.rotation;
+            Vector3 gripDirection = (cameraPivot.forward * holdDistance + cameraPivot.up * holdVerticalOffset).normalized;
+            Vector3 origin = ResolveCarryOverlap(cameraPivot.position + gripDirection * MinimumCarryDistance, rotation);
+            Vector3 allowed = Vector3.zero;
+            Vector3 remaining = movement;
+            // Retraction is allowed, but the body stops before it would fold the grip into
+            // the camera. Project remaining movement along walls so strafing still works.
+            for (int pass = 0; pass < 3 && remaining.sqrMagnitude > 1e-12f; pass++)
+            {
+                float distance = remaining.magnitude;
+                RaycastHit nearest = default;
+                bool blocked = false;
+                foreach (RaycastHit hit in Physics.BoxCastAll(origin + allowed, held.HalfExtents,
+                    remaining / distance, rotation, distance + CarryGap, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                {
+                    if (hit.collider == playerCollider || hit.collider.attachedRigidbody == held.Body ||
+                        Vector3.Dot(remaining / distance, hit.normal) >= -0.00001f || (blocked && hit.distance >= nearest.distance)) continue;
+                    nearest = hit;
+                    blocked = true;
+                }
+                if (!blocked) { allowed += remaining; break; }
+                Vector3 advance = remaining.normalized * Mathf.Clamp(nearest.distance - CarryGap, 0f, distance);
+                allowed += advance;
+                remaining = Vector3.ProjectOnPlane(remaining - advance, nearest.normal);
+                remaining.y = 0f;
+            }
+            return allowed;
+        }
+
+        private Vector3 ResolveCarryOverlap(Vector3 position, Quaternion rotation)
+        {
+            for (int pass = 0; pass < 4; pass++)
+            {
+                bool moved = false;
+                foreach (Collider other in Physics.OverlapBox(position, held.HalfExtents, rotation,
+                    Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                {
+                    if (other == playerCollider || other.attachedRigidbody == held.Body) continue;
+                    if (!Physics.ComputePenetration(held.Shape, position, rotation, other,
+                        other.transform.position, other.transform.rotation, out Vector3 normal, out float depth)) continue;
+                    position += normal * (depth + CarryGap);
+                    moved = true;
+                }
+                if (!moved) break;
+            }
+            return position;
         }
 
         public void Drop()

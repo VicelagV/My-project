@@ -22,6 +22,11 @@ If the scene is missing, use **All Aboard > Create Movement Playground**.
   gripping hands share the current camera pose; free-object interpolation resumes
   after release. Shape-aware carry clearance keeps floor aiming from pulling the
   cube into the camera.
+  Carrying allows a small retraction near walls, then blocks movement that would
+  crush the grip into the camera; you can still slide sideways or back away.
+  Overlapping carry volumes are cleared before casting, including thin floor
+  edges. Held cubes and temporarily ignored dropped cubes do not count as the
+  ground beneath the player or block standing clearance.
 - Only the hands have a black outline. Adjust Outline Thickness and Outline Color
   on `Assets/Movement/Materials/HandOutline.mat` (zero thickness hides the border).
 - The playground has steps, a ramp, jump blocks, walls, and a low ceiling.
@@ -71,6 +76,9 @@ looking down near the floor while crouched.
 Moving-platform checks cover passive translation and rotation, jump momentum,
 loose-cube friction, carrying through crouch changes, inherited drop velocity,
 and standing automatically after leaving a moving low roof.
+Regression checks also cover crouched floor-facing pickup on a moving deck,
+pickup/drop over a thin suspended floor, and sprinting into a wall while carrying,
+then sliding sideways and backing away without folding the hands into the camera.
 Audio checks verify the imported clips and prefab references, and that jump/landing
 feedback fires once instead of repeating while the player rests on the ground.
 Run them from **Window > General > Test Runner > PlayMode**.

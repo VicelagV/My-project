@@ -8,7 +8,7 @@ namespace AllAboard.Train
         [SerializeField] private AudioClip countryside;
         [SerializeField, Range(0f,1f)] private float volume=0.08f;
         private AudioSource source;
-        public void Configure(AudioClip clip) { countryside=clip; }
+        public void Configure(AudioClip clip) { countryside=clip;volume=0.03f; }
         private void Awake()
         {
             source=GetComponent<AudioSource>();source.clip=countryside;

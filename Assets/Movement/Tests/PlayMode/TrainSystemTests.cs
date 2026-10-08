@@ -249,14 +249,16 @@ namespace AllAboard.Movement.Tests
             train.Throttle = 0f; audio.Tick(1f);
             Assert.That(audio.SteamVolume, Is.Zero); Assert.That(audio.RollingVolume, Is.Zero);
             var loops = cars.SelectMany(x => x.GetComponentsInChildren<AudioSource>()).Where(x => x.loop).ToArray();
-            Assert.That(loops.Length, Is.EqualTo(5));
+            Assert.That(loops.Length, Is.EqualTo(6));
             Assert.That(loops.All(x => x.clip != null && x.clip.length >= 3.9f && x.spatialBlend == 1f), Is.True);
             train.Throttle = 0.5f; train.Step(1f); audio.Tick(1f);
             float half = audio.SteamVolume;
             Assert.That(half, Is.GreaterThan(0f)); Assert.That(audio.RollingVolume, Is.GreaterThan(0f));
+            Assert.That(audio.ChuffVolume,Is.GreaterThan(0f));
             train.Throttle = 1f; audio.Tick(1f); Assert.That(audio.SteamVolume, Is.GreaterThan(half));
             train.Throttle = 0f; train.Braking = true; train.Step(2f); audio.Tick(1f);
             Assert.That(audio.SteamVolume, Is.Zero); Assert.That(audio.RollingVolume, Is.Zero);
+            Assert.That(audio.ChuffVolume,Is.Zero);
             train.Resources.SetLevels(0f, 40f); train.Throttle = 1f; train.Braking = false; audio.Tick(1f);
             Assert.That(audio.SteamVolume, Is.Zero);
         }

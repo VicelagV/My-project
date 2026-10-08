@@ -1,4 +1,4 @@
-"""Offline original steam and rolling loops. Recorded signals use import_train_signals.py."""
+"""Offline original steam hiss. Recorded rolling/chuffs use import_driving_audio.py."""
 import math
 from pathlib import Path
 import struct
@@ -18,7 +18,7 @@ for index in range(count * 2):
     low += 0.12 * (noise[index % count] - low)
     if index >= count:
         filtered.append(low)
-for name in ("TrainSteamLoop", "TrainRollingLoop"):
+for name in ("TrainSteamLoop",):
     frames = bytearray()
     for index in range(count):
         t = index / rate

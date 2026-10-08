@@ -69,6 +69,18 @@ namespace AllAboard.Movement.Tests
             Assert.That(Physics.Raycast(coach.transform.TransformPoint(new Vector3(0f,1.9f,-4f)),coach.transform.forward,8f,~0,QueryTriggerInteraction.Ignore),Is.False);
             Assert.That(Physics.Raycast(coach.transform.TransformPoint(new Vector3(0f,1.8f,1.5f)),coach.transform.right,3f,~0,QueryTriggerInteraction.Ignore),Is.False);
         }
+        [Test]
+        public void RoofTrimAndCabHeaderStayBeneathTheCurvedRoof()
+        {
+            foreach(var car in cars.Where(x=>x.Kind!=CarKind.Coal))
+                foreach(var part in car.GetComponentsInChildren<MeshFilter>().Where(x=>new[]{"Coach Upper Body","Roof Wall Seam","Front Cab Window Header","Front Cab Corner Jamb"}.Contains(x.name)))
+                    foreach(var vertex in part.sharedMesh.vertices)
+                    {
+                        Vector3 p=car.transform.InverseTransformPoint(part.transform.TransformPoint(vertex));
+                        float roof=3.8f+0.3f*Mathf.Sqrt(Mathf.Max(0f,1f-p.x*p.x/(2.05f*2.05f)));
+                        Assert.That(p.y,Is.LessThanOrEqualTo(roof+0.001f),part.name+" projects through roof");
+                    }
+        }
         [UnityTest]
         public IEnumerator TrailingCarBodiesSwayGentlyAndSettleWhenStopped()
         {

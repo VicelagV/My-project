@@ -42,6 +42,8 @@ namespace AllAboard.Editor
                 DressCab(train.Cars[0]);
                 var ambience=train.GetComponent<TrainAmbience>();if(ambience==null)ambience=train.gameObject.AddComponent<TrainAmbience>();
                 ambience.Configure(AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/CountrysideLoop.wav"));EditorUtility.SetDirty(ambience);
+                var drive=train.GetComponent<TrainDriveAudio>();
+                drive.Configure(train,AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/TrainSteamLoop.wav"),AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/TrainRollingLoop.wav"),AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/TrainChuffLoop.wav"));EditorUtility.SetDirty(drive);
                 foreach(TrainCar car in train.Cars)
                     foreach(PrototypeInteractable target in car.GetComponentsInChildren<PrototypeInteractable>())
                     {
@@ -134,7 +136,7 @@ namespace AllAboard.Editor
                     foreach (var span in side < 0f ? new[] { new Vector2(0f, 8.8f) } : new[] { new Vector2(-1.95f, 4.9f), new Vector2(3.45f, 1.9f) })
                     {
                         Part(details, "Coach Lower Body", new Vector3(side * 1.9f, 1.69f, span.x), new Vector3(0.15f, 1.08f, span.y), navy, panelBox);
-                        Part(details, "Coach Upper Body", new Vector3(side * 1.9f, kind == CarKind.Locomotive ? 3.86f : 3.66f, span.x), new Vector3(0.15f, kind == CarKind.Locomotive ? 0.28f : 0.67f, span.y), kind == CarKind.Locomotive ? ivory : navy, panelBox);
+                        Part(details, "Coach Upper Body", new Vector3(side * 1.9f, kind == CarKind.Locomotive ? 3.795f : 3.60f, span.x), new Vector3(0.15f, kind == CarKind.Locomotive ? 0.15f : 0.54f, span.y), kind == CarKind.Locomotive ? ivory : navy, panelBox);
                         Part(details, "Gold Waist Stripe", new Vector3(side * 1.984f, 2.17f, span.x), new Vector3(0.012f, 0.065f, span.y), brass);
                     }
                     var centers = side < 0f ? new[] { -3.45f, -1.72f, 0f, 1.72f, 3.45f } : new[] { -3.45f, -1.72f, 0f, 3.45f };
@@ -212,7 +214,7 @@ namespace AllAboard.Editor
                 start=Mathf.Max(start,hole.y);
             }
             // Close the top corners between the curved roof and the flat wall panels.
-            Part(parent,"Roof Wall Seam",new Vector3(side*1.9f,3.94f,0f),new Vector3(0.15f,0.24f,8.85f),navy,panelBox);
+            Part(parent,"Roof Wall Seam",new Vector3(side*1.9f,3.845f,0f),new Vector3(0.15f,0.05f,8.85f),navy,panelBox);
         }
         private static void PassengerSeats(Transform parent,float side,float z)
         {
@@ -341,8 +343,8 @@ namespace AllAboard.Editor
                 foreach(float y in new[]{2.66f,3.82f}) Part(details,"Front Window Brass Sill",new Vector3(x,y,4.17f),new Vector3(1.56f,0.055f,0.09f),brass);
                 foreach(float edge in new[]{-1f,1f}) Part(details,"Front Window Frame",new Vector3(x+edge*0.77f,3.24f,4.2f),new Vector3(0.065f,1.2f,0.15f),navy);
             }
-            Part(details,"Front Cab Window Header",new Vector3(0f,3.94f,4.2f),new Vector3(3.8f,0.35f,0.15f),navy,panelBox);
-            foreach(float x in new[]{-1.75f,1.75f})Part(details,"Front Cab Corner Jamb",new Vector3(x,3.35f,4.2f),new Vector3(0.34f,1.55f,0.15f),navy,panelBox);
+            Part(details,"Front Cab Window Header",new Vector3(0f,3.74f,4.2f),Vector3.one,navy,MeshAsset("TrainCabCurvedHeader",CabHeaderMesh()));
+            foreach(float x in new[]{-1.75f,1.75f})Part(details,"Front Cab Corner Jamb",new Vector3(x,3.225f,4.2f),new Vector3(0.34f,1.30f,0.15f),navy,panelBox);
             Part(details,"Front Centre Mullion",new Vector3(0f,3.25f,4.2f),new Vector3(0.2f,1.2f,0.15f),navy,panelBox);
             var frontGlassCollision=Part(details,"Front Window Safety Glass",new Vector3(0f,3.25f,4.24f),new Vector3(3.8f,1.2f,0.02f),glass);
             frontGlassCollision.GetComponent<Renderer>().enabled=false; frontGlassCollision.AddComponent<BoxCollider>();
@@ -493,6 +495,21 @@ namespace AllAboard.Editor
                     }
                     Tri(v,t,corners[0],corners[1],corners[2],normal); Tri(v,t,corners[0],corners[2],corners[3],normal);
                 }
+            }
+            return Make(v,t);
+        }
+        private static Mesh CabHeaderMesh()
+        {
+            var v=new List<Vector3>();var t=new List<int>();
+            for(int i=0;i<24;i++)
+            {
+                float x=-1.9f+3.8f*i/24f,n=-1.9f+3.8f*(i+1)/24f;
+                float y=0.055f+0.3f*Mathf.Sqrt(1f-x*x/(2.05f*2.05f)),h=0.055f+0.3f*Mathf.Sqrt(1f-n*n/(2.05f*2.05f));
+                foreach(float z in new[]{-0.075f,0.075f})
+                {Tri(v,t,new Vector3(x,0f,z),new Vector3(n,0f,z),new Vector3(n,h,z),Vector3.forward*Mathf.Sign(z));Tri(v,t,new Vector3(x,0f,z),new Vector3(n,h,z),new Vector3(x,y,z),Vector3.forward*Mathf.Sign(z));}
+                Tri(v,t,new Vector3(x,y,-0.075f),new Vector3(n,h,-0.075f),new Vector3(n,h,0.075f),Vector3.up);Tri(v,t,new Vector3(x,y,-0.075f),new Vector3(n,h,0.075f),new Vector3(x,y,0.075f),Vector3.up);
+                Tri(v,t,new Vector3(x,0f,-0.075f),new Vector3(n,0f,-0.075f),new Vector3(n,0f,0.075f),Vector3.down);Tri(v,t,new Vector3(x,0f,-0.075f),new Vector3(n,0f,0.075f),new Vector3(x,0f,0.075f),Vector3.down);
+                if(i==0||i==23){float e=i==0?x:n,top=i==0?y:h;Vector3 normal=i==0?Vector3.left:Vector3.right;Tri(v,t,new Vector3(e,0f,-0.075f),new Vector3(e,top,-0.075f),new Vector3(e,top,0.075f),normal);Tri(v,t,new Vector3(e,0f,-0.075f),new Vector3(e,top,0.075f),new Vector3(e,0f,0.075f),normal);}
             }
             return Make(v,t);
         }

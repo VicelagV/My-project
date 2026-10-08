@@ -2,6 +2,7 @@ using UnityEngine;
 
 namespace AllAboard.Movement
 {
+    [DefaultExecutionOrder(100)]
     [RequireComponent(typeof(PlayerInputReader), typeof(FirstPersonView))]
     public sealed class PlayerInteraction : MonoBehaviour
     {
@@ -69,7 +70,7 @@ namespace AllAboard.Movement
             dot.Apply();
         }
 
-        private void Update()
+        private void LateUpdate()
         {
             SetHovered(null);
             if (hoveredControl != null) hoveredControl.SetHighlighted(false);
@@ -87,17 +88,8 @@ namespace AllAboard.Movement
                 else DragThrottle(input.Look);
                 return;
             }
-            float nearestDistance = reach;
-            foreach (RaycastHit hit in Physics.RaycastAll(cameraPivot.position, cameraPivot.forward, reach,
-                Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
-            {
-                if (hit.collider == playerCollider || (held != null && hit.collider.attachedRigidbody == held.Body) || hit.distance > nearestDistance) continue;
-                nearestDistance = hit.distance;
-                hoveredControl = hit.collider.GetComponentInParent<PrototypeInteractable>();
-                SetHovered(held == null ? hit.collider.GetComponentInParent<PickupObject>() : null);
-            }
-            if (hoveredControl != null) hoveredControl.SetHighlighted(true);
-            if (input.GrabPressed && hoveredControl is AllAboard.Train.TrainLever lever && TryGrabThrottle(lever))
+            RefreshHoveredTarget();
+            if (input.GrabPressed && TryGrabHoveredLever())
             {
                 DragThrottle(input.Look);
                 return;
@@ -117,6 +109,39 @@ namespace AllAboard.Movement
             }
             else if (input.WeldPressed && hovered != null && hovered.IsWelded) TryUnweld(hovered);
             else if (input.InteractPressed && hovered != null) TryPickup(hovered);
+        }
+
+        public bool TryGrabHoveredLever()=>hoveredControl is AllAboard.Train.TrainLever lever&&TryGrabThrottle(lever);
+        public void RefreshHoveredTarget()
+        {
+            SetHovered(null);if(hoveredControl!=null)hoveredControl.SetHighlighted(false);hoveredControl=null;
+            if(cameraPivot==null)return;
+            // Interpolated carriage and camera transforms now describe this rendered frame.
+            Physics.SyncTransforms();
+            float nearestDistance = reach;
+            foreach (RaycastHit hit in Physics.RaycastAll(cameraPivot.position, cameraPivot.forward, reach,
+                Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            {
+                if (hit.collider == playerCollider || (held != null && hit.collider.attachedRigidbody == held.Body) || hit.distance > nearestDistance) continue;
+                nearestDistance = hit.distance;
+                hoveredControl = hit.collider.GetComponentInParent<PrototypeInteractable>();
+                SetHovered(held == null ? hit.collider.GetComponentInParent<PickupObject>() : null);
+            }
+            if(GetComponent<FirstPersonMotor>().IsSeated&&!IsHolding&&hoveredControl==null)
+            {
+                float nearestLever=reach;
+                foreach(var hit in Physics.SphereCastAll(cameraPivot.position,0.10f,cameraPivot.forward,reach,Physics.DefaultRaycastLayers,QueryTriggerInteraction.Ignore))
+                {
+                    var candidate=hit.collider.GetComponentInParent<AllAboard.Train.TrainLever>();
+                    if(candidate==null||hit.distance>=nearestLever)continue;
+                    Vector3 direction=candidate.Handle.position-cameraPivot.position;bool blocked=false;
+                    foreach(var obstacle in Physics.RaycastAll(cameraPivot.position,direction.normalized,direction.magnitude,Physics.DefaultRaycastLayers,QueryTriggerInteraction.Ignore))
+                        if(obstacle.collider!=playerCollider&&obstacle.collider.GetComponentInParent<AllAboard.Train.TrainLever>()!=candidate){blocked=true;break;}
+                    if(blocked)continue;
+                    hoveredControl=candidate;nearestLever=hit.distance;SetHovered(null);
+                }
+            }
+            if (hoveredControl != null) hoveredControl.SetHighlighted(true);
         }
 
         private void SetHovered(PickupObject item)

@@ -66,7 +66,8 @@ namespace AllAboard.Editor
             controller.Configure(path, cars);
             controller.gameObject.AddComponent<TrainDriveAudio>().Configure(controller,
                 AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/TrainSteamLoop.wav"),
-                AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/TrainRollingLoop.wav"));
+                AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/TrainRollingLoop.wav"),
+                AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/TrainChuffLoop.wav"));
             DamageableComponent speedometer = AddCabControls(controller, cars[0]);
             TrainAppearanceBuilder.DressCab(cars[0]);
             foreach (TrainCar car in cars)

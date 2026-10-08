@@ -285,6 +285,22 @@ namespace AllAboard.Movement.Tests
                 InputSystem.RemoveDevice(mouse); if (previous != null && previous.added) previous.MakeCurrent();
             }
         }
+        [UnityTest]
+        public IEnumerator MovingDriverCanGrabBothLeversWithAnImpreciseAim()
+        {
+            var seat=cars[0].GetComponentInChildren<ConductorSeat>();Assert.That(seat.Interact(actor),Is.True);
+            train.Throttle=0.5f;train.enabled=true;yield return Wait(0.5f);
+            Assert.That(train.Speed,Is.GreaterThan(0f));
+            foreach(var lever in cars[0].GetComponentsInChildren<TrainLever>())
+            {
+                var camera=player.GetComponentInChildren<Camera>().transform;
+                camera.rotation=Quaternion.LookRotation(lever.Handle.position+cars[0].transform.right*0.14f-camera.position);
+                actor.RefreshHoveredTarget();Assert.That(actor.TryGrabHoveredLever(),Is.True,lever.name);
+                Assert.That(actor.DragThrottle(new Vector2(0f,30f)),Is.True);
+                actor.ReleaseThrottle();
+            }
+
+        }
     }
 }
 #endif

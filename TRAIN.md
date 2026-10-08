@@ -77,8 +77,9 @@ Steam hiss fades with throttle and stops when braking or out of Steam. Each car
 has a soft rolling rhythm that changes with speed and fades away when stopped;
 uncoupled stationary cars stop producing it. Whistle and bell remain separate E
 controls. Volumes, fade time and reference speed are configurable on TrainDriveAudio.
-Steam and rolling loops are original synthesized placeholders generated with
-`Tools/create_train_sounds.py`. Bell and whistle now use the user-selected Trainz horn and boxing bell
+Steam hiss is an original synthesized layer generated with
+`Tools/create_train_sounds.py`. Wheel/rail rumble and engine chuffs use CC0
+recordings/foley prepared with `Tools/import_driving_audio.py`. Bell and whistle now use the user-selected Trainz horn and boxing bell
 clips, prepared with `Tools/import_train_signals.py`; source information and
 license status are in [TRAIN_SOUND_CREDITS.md](TRAIN_SOUND_CREDITS.md).
 
@@ -112,3 +113,11 @@ movement, which passengers feel; it settles when stopped. Both train scenes
 include quiet stereo countryside ambience (wind, birds and insects), streamed
 in a crossfaded loop. TrainAmbience volume is adjustable on the train root.
 Janney knuckle couplers open and close with their existing connection state.
+
+Driver lever targeting runs after the current frame's camera and carrier movement.
+A 10 cm aim margin around the lever grip makes throttle and brake grabs forgiving
+while seated, with a visibility check to prevent grabs through cabin geometry.
+Once grabbed, left-click holds the lever independently of the aiming dot.
+Driving audio has separate speed-driven rumble and throttle/speed-driven chuffs,
+plus steam hiss. Chuffs stop without steam or while braking; rolling continues
+while coasting, then fades to silence at a stop. Countryside ambience is quieter.

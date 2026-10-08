@@ -37,3 +37,6 @@ Reference: [McConway & Torley knuckles and coupler parts](https://mcconway.com/c
 Coal and passenger cars gently sway at speed (up to 0.35 degrees of roll,
 8 mm sideways and 6 mm vertically). The whole kinematic car moves, so riders
 feel the movement. Sway fades out when stopped or detached.
+
+Roof trim now sits below the curved roof skin. The front cab header follows
+the roof arch, and corner jambs stop beneath it rather than poking through.

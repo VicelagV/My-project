@@ -41,6 +41,7 @@ namespace AllAboard.Movement
         public bool BeginHold(Collider playerCollider)
         {
             if (IsHeld || IsWelded) return false;
+            GetComponent<AllAboard.Train.CoalItem>()?.TakeFromStorage();
             if (restoreCollision != null)
             {
                 StopCoroutine(restoreCollision);

@@ -29,6 +29,9 @@ namespace AllAboard.Movement
         private Vector3 leftRest;
         private Vector3 rightRest;
         private Transform heldObject;
+        private Transform handControlTarget;
+        public bool IsUsingHandControl => handControlTarget != null;
+        public void SetHandControlTarget(Transform target) => handControlTarget = target;
         private float gripHalfWidth;
         private float standingEyeHeight;
         private PlayerInteraction interaction;
@@ -67,7 +70,13 @@ namespace AllAboard.Movement
         private void Update()
         {
             if (cameraPivot == null || !input.HasControl) return;
-            Vector2 delta = input.Look;
+            if (interaction != null && interaction.IsPressingHoveredLever) return;
+            ApplyLook(input.Look);
+        }
+
+        public void ApplyLook(Vector2 delta)
+        {
+            if (cameraPivot == null || IsUsingHandControl) return;
             transform.Rotate(Vector3.up, delta.x * mouseSensitivity, Space.Self);
             pitch = Mathf.Clamp(pitch - delta.y * mouseSensitivity, -pitchLimit, pitchLimit);
             cameraPivot.localRotation = Quaternion.Euler(pitch, 0f, 0f);
@@ -108,6 +117,8 @@ namespace AllAboard.Movement
             hands.localPosition = Vector3.Lerp(hands.localPosition, handRestPosition + bob + sway + inertia.Offset,
                 1f - Mathf.Exp(-14f * Time.deltaTime));
             hands.localRotation = InertiaRotation;
+            if (handControlTarget != null && rightHand != null)
+                rightHand.position = handControlTarget.position + handControlTarget.right * 0.11f;
         }
     }
 }

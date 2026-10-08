@@ -6,10 +6,11 @@ namespace AllAboard.Train
     {
         [SerializeField] private TrainController train;
         [SerializeField] private DamageableComponent speedometer;
+        [SerializeField] private bool showDebugReadout;
         public void Configure(TrainController controller, DamageableComponent instrument) { train = controller; speedometer = instrument; }
         private void OnGUI()
         {
-            if (train == null) return;
+            if (train == null || !showDebugReadout) return;
             string speed = speedometer != null && speedometer.IsBroken ? "BROKEN" : Mathf.Abs(train.Speed).ToString("F1") + " m/s";
             GUI.Box(new Rect(12f, 12f, 275f, 160f), "TRAIN PROTOTYPE");
             GUI.Label(new Rect(24f, 40f, 260f, 130f), "Speed: " + speed + " | " + (train.Reversing ? "REVERSE" : "FORWARD") +

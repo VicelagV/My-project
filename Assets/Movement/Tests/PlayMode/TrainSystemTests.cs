@@ -44,7 +44,7 @@ namespace AllAboard.Movement.Tests
             resources.Step(0.5f, false, 1f); float normalDrain = 50f - resources.Steam, normalPressure = resources.Pressure - 40f;
             resources.SetLevels(90f, 40f); Assert.That(resources.Performance, Is.GreaterThan(1f));
             resources.Step(0.5f, false, 1f);
-            Assert.That(90f - resources.Steam, Is.GreaterThan(normalDrain));
+            Assert.That(90f - resources.Steam, Is.EqualTo(normalDrain).Within(0.001f));
             Assert.That(resources.Pressure - 40f, Is.GreaterThan(normalPressure));
             resources.SetLevels(90f, 95f); Assert.That(resources.AddCoal(), Is.True);
             Assert.That(resources.Steam, Is.EqualTo(100f)); Assert.That(resources.Pressure, Is.EqualTo(100f));
@@ -54,6 +54,82 @@ namespace AllAboard.Movement.Tests
             resources.SetLevels(0f, 30f); resources.Step(1f, true, 1f);
             Assert.That(resources.Steam, Is.Zero); Assert.That(resources.Pressure, Is.LessThan(30f));
             Assert.That(resources.BrakeEfficiency, Is.EqualTo(1f));
+        }
+
+        [Test]
+        public void SteamBalanceMatchesFortyPerCoalAndHalfPerSecondAtFullThrottle()
+        {
+            var resources = train.Resources;
+            resources.SetLevels(10f, 30f);
+            Assert.That(resources.AddCoal(), Is.True);
+            Assert.That(resources.Steam, Is.EqualTo(50f));
+            Assert.That(resources.Pressure, Is.EqualTo(35f));
+            resources.Step(1f, false, 2f); Assert.That(resources.Steam, Is.EqualTo(49f).Within(0.001f));
+            resources.Step(0.5f, false, 2f); Assert.That(resources.Steam, Is.EqualTo(48.5f).Within(0.001f));
+            resources.Step(0f, false, 100f); Assert.That(resources.Steam, Is.EqualTo(48.5f).Within(0.001f));
+            resources.Step(1f, true, 10f); Assert.That(resources.Steam, Is.EqualTo(48.5f).Within(0.001f));
+            resources.SetLevels(50f, 40f);
+            resources.Step(1f, false, 80f); Assert.That(resources.Steam, Is.EqualTo(10f).Within(0.001f));
+        }
+
+        [UnityTest]
+        public IEnumerator StoredCoalStaysFixedOnCurveAndBecomesPhysicalAfterPickup()
+        {
+            Assert.That(cars[1].Kind, Is.EqualTo(CarKind.Coal));
+            Assert.That(cars[2].Kind, Is.EqualTo(CarKind.Passenger));
+            Assert.That(cars[3].Kind, Is.EqualTo(CarKind.Passenger));
+            Assert.That(cars[1].transform.Find("Walkable Roof"), Is.Null);
+            Assert.That(cars[1].GetComponentInChildren<TrainDoor>(), Is.Null);
+            var coal = cars[1].GetComponentsInChildren<CoalItem>();
+            Assert.That(coal.Length, Is.EqualTo(10));
+            var initial = coal.Select(x => x.transform.localPosition).ToArray();
+            train.Configure(train.Path, cars, 235f);
+            train.Throttle = 1f; train.enabled = true;
+            yield return Wait(3f);
+            for (int i = 0; i < coal.Length; i++)
+            {
+                Assert.That(coal[i].IsStored, Is.True);
+                Assert.That(coal[i].GetComponent<Rigidbody>().isKinematic, Is.True);
+                Assert.That(Vector3.Distance(coal[i].transform.localPosition, initial[i]), Is.LessThan(0.001f));
+            }
+            var item = coal[0].GetComponent<PickupObject>();
+            Assert.That(item.BeginHold(actor.GetComponent<CharacterController>()), Is.True);
+            Assert.That(coal[0].IsStored, Is.False);
+            Assert.That(item.transform.parent, Is.Null);
+            item.Release(cars[1].Body.GetPointVelocity(item.transform.position));
+            Assert.That(item.Body.isKinematic, Is.False);
+            Assert.That(item.Body.useGravity, Is.True);
+        }
+
+        [Test]
+        public void SceneOnlyHasGaugeLabelsAndNoThrottleButtons()
+        {
+            Assert.That(scene.GetRootGameObjects().SelectMany(x => x.GetComponentsInChildren<MonoBehaviour>(true)).Any(x => x == null), Is.False, "Scene must have no missing scripts.");
+            var labels = scene.GetRootGameObjects().SelectMany(x => x.GetComponentsInChildren<TextMesh>()).ToArray();
+            Assert.That(labels.Length, Is.EqualTo(3));
+            Assert.That(labels.All(x => x.GetComponent<TrainInstrument>() != null), Is.True);
+            Assert.That(cars[0].GetComponentsInChildren<TrainThrottleLever>().Length, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void SteamAndWheelAudioFollowThrottleSpeedAndStopWithoutSteam()
+        {
+            var audio = train.GetComponent<TrainDriveAudio>();
+            Assert.That(audio, Is.Not.Null);
+            audio.enabled = false;
+            train.Throttle = 0f; audio.Tick(1f);
+            Assert.That(audio.SteamVolume, Is.Zero); Assert.That(audio.RollingVolume, Is.Zero);
+            var loops = cars.SelectMany(x => x.GetComponentsInChildren<AudioSource>()).Where(x => x.loop).ToArray();
+            Assert.That(loops.Length, Is.EqualTo(5));
+            Assert.That(loops.All(x => x.clip != null && x.clip.length >= 3.9f && x.spatialBlend == 1f), Is.True);
+            train.Throttle = 0.5f; train.Step(1f); audio.Tick(1f);
+            float half = audio.SteamVolume;
+            Assert.That(half, Is.GreaterThan(0f)); Assert.That(audio.RollingVolume, Is.GreaterThan(0f));
+            train.Throttle = 1f; audio.Tick(1f); Assert.That(audio.SteamVolume, Is.GreaterThan(half));
+            train.Throttle = 0f; train.Braking = true; train.Step(2f); audio.Tick(1f);
+            Assert.That(audio.SteamVolume, Is.Zero); Assert.That(audio.RollingVolume, Is.Zero);
+            train.Resources.SetLevels(0f, 40f); train.Throttle = 1f; train.Braking = false; audio.Tick(1f);
+            Assert.That(audio.SteamVolume, Is.Zero);
         }
 
         [Test]

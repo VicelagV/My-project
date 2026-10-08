@@ -5,6 +5,8 @@ using AllAboard.Train;
 using NUnit.Framework;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
@@ -58,7 +60,13 @@ namespace AllAboard.Movement.Tests
                 if (current != null && current != target)
                 {
                     TrainCar next = System.Array.IndexOf(cars, current) > System.Array.IndexOf(cars, target) ? current.Front : current.Rear;
-                    if (next != null) difference = next.transform.position - player.transform.position;
+                    if (next != null)
+                    {
+                        float direction = next == current.Front ? 1f : -1f;
+                        Vector3 local = current.transform.InverseTransformPoint(player.transform.position);
+                        Vector3 waypoint = local.z * direction < 4f ? current.transform.TransformPoint(new Vector3(0f, height, direction * 4.6f)) : next.transform.position;
+                        difference = waypoint - player.transform.position;
+                    }
                     difference.y = 0f;
                 }
                 difference.Normalize();
@@ -97,7 +105,7 @@ namespace AllAboard.Movement.Tests
         }
 
         [UnityTest]
-        public IEnumerator MovingLadderFullRoofWalkAndReturnInsideStayStable()
+        public IEnumerator MovingLocomotiveLadderAndRoofReturnStayStable()
         {
             SpawnOn(cars[0], new Vector3(1.1f, 1.18f, -2.7f));
             train.Throttle = 0.5f; train.enabled = true;
@@ -106,7 +114,6 @@ namespace AllAboard.Movement.Tests
             yield return Wait(1.4f);
             Assert.That(motor.IsClimbing, Is.False);
             Assert.That(cars[0].transform.InverseTransformPoint(player.transform.position).y, Is.InRange(4.08f, 4.2f));
-            yield return WalkTo(cars[3], 4.18f);
             yield return WalkTo(cars[0], 4.18f);
             Assert.That(ladder.Interact(actor), Is.True);
             yield return Wait(1.4f);
@@ -115,14 +122,25 @@ namespace AllAboard.Movement.Tests
         }
 
         [UnityTest]
+        public IEnumerator MovingPassengerRoofsStillAllowCarTransitions()
+        {
+            SpawnOn(cars[3], new Vector3(0f, 4.18f, 0f));
+            train.Throttle = 0.5f; train.enabled = true;
+            yield return WalkTo(cars[2], 4.18f);
+            yield return WalkTo(cars[3], 4.18f);
+            Assert.That(motor.Grounded, Is.True);
+            Assert.That(cars[3].transform.InverseTransformPoint(player.transform.position).y, Is.InRange(4.08f, 4.2f));
+        }
+
+        [UnityTest]
         public IEnumerator RoofJumpKeepsTrainVelocityAndLandsBackOnTrain()
         {
             train.Configure(train.Path, cars, 235f);
-            SpawnOn(cars[1], new Vector3(0f, 4.18f, 0f));
+            SpawnOn(cars[2], new Vector3(0f, 4.18f, 0f));
             train.Throttle = 0.5f; train.enabled = true;
             yield return Wait(2f);
             Vector3 before = player.transform.position;
-            Vector3 velocity = cars[1].Body.GetPointVelocity(before); velocity.y = 0f;
+            Vector3 velocity = cars[2].Body.GetPointVelocity(before); velocity.y = 0f;
             driver.Jump = true;
             yield return Wait(0.2f);
             Assert.That(player.transform.position.y - before.y, Is.GreaterThan(0.7f));
@@ -136,18 +154,23 @@ namespace AllAboard.Movement.Tests
         [UnityTest]
         public IEnumerator PhysicalCoalCanBeCarriedThroughMovingCarsAndFedIntoFirebox()
         {
-            SpawnOn(cars[3], new Vector3(0f, 1.18f, 0f));
-            var coal = scene.GetRootGameObjects().Select(x => x.GetComponent<CoalItem>()).First(x => x != null).GetComponent<PickupObject>();
-            coal.Body.position = player.transform.Find("Player Camera").TransformPoint(Vector3.forward);
+            SpawnOn(cars[1], new Vector3(0f, 1.18f, 0f));
+            var coal = cars[1].GetComponentInChildren<CoalItem>().GetComponent<PickupObject>();
+            Transform camera = player.transform.Find("Player Camera");
+            camera.rotation = Quaternion.LookRotation(coal.transform.position - camera.position);
             Physics.SyncTransforms();
+            Assert.That(Physics.Raycast(camera.position, camera.forward, out RaycastHit hit, 3f), Is.True);
+            Assert.That(hit.collider.GetComponent<PickupObject>(), Is.EqualTo(coal));
             Assert.That(actor.TryPickup(coal), Is.True);
+            Assert.That(coal.GetComponent<CoalItem>().IsStored, Is.False);
+            camera.localRotation = Quaternion.identity;
             train.Throttle = 0.25f; train.enabled = true;
             yield return WalkTo(cars[0], 1.18f);
             Assert.That(actor.HeldItem, Is.EqualTo(coal));
             float steam = train.Resources.Steam, pressure = train.Resources.Pressure;
             var firebox = cars[0].GetComponentsInChildren<TrainControl>().First(x => x.Kind == ControlKind.Firebox);
             Assert.That(firebox.Interact(actor), Is.True);
-            Assert.That(train.Resources.Steam, Is.EqualTo(steam + 10f).Within(0.01f));
+            Assert.That(train.Resources.Steam, Is.EqualTo(steam + 40f).Within(0.01f));
             Assert.That(train.Resources.Pressure, Is.EqualTo(pressure + 5f).Within(0.01f));
             Assert.That(train.Resources.CoalSupply, Is.EqualTo(9));
             Assert.That(actor.IsHolding, Is.False);
@@ -179,36 +202,88 @@ namespace AllAboard.Movement.Tests
         {
             SpawnOn(cars[0], new Vector3(0f, 1.18f, 1.3f));
             ConductorSeat seat = cars[0].GetComponentInChildren<ConductorSeat>();
-            TrainControl throttle = cars[0].GetComponentsInChildren<TrainControl>().First(x => x.Kind == ControlKind.ThrottleUp);
-            Assert.That(throttle.Interact(actor), Is.False);
-            StringAssert.Contains("Sit", throttle.Prompt);
+            TrainThrottleLever throttle = cars[0].GetComponentInChildren<TrainThrottleLever>();
+            actor.enabled = false;
+            Assert.That(actor.TryGrabThrottle(throttle), Is.False);
             Assert.That(train.Throttle, Is.Zero);
             Assert.That(seat.Interact(actor), Is.True);
-            Assert.That(throttle.Interact(actor), Is.True);
+            Assert.That(actor.TryGrabThrottle(throttle), Is.True);
+            Assert.That(actor.DragThrottle(new Vector2(500f, 75f)), Is.True);
             Assert.That(train.Throttle, Is.EqualTo(0.25f));
-            var lower = cars[0].GetComponentsInChildren<TrainControl>().First(x => x.Kind == ControlKind.ThrottleDown);
-            Assert.That(lower.Interact(actor), Is.True); Assert.That(train.Throttle, Is.Zero);
-            Assert.That(throttle.Interact(actor), Is.True);
-            yield return Wait(0.3f);
-            Physics.SyncTransforms();
+            var view = player.GetComponent<FirstPersonView>();
             Transform camera = player.transform.Find("Player Camera");
+            Quaternion beforeLook = camera.rotation;
+            view.ApplyLook(new Vector2(100f, 100f));
+            Assert.That(Quaternion.Angle(camera.rotation, beforeLook), Is.LessThan(0.001f));
+            Assert.That(actor.DragThrottle(new Vector2(0f, -75f)), Is.True);
+            Assert.That(train.Throttle, Is.Zero);
+            actor.DragThrottle(new Vector2(0f, 75f));
+            yield return Wait(0.3f);
+            Transform hands = camera.Find("Floating Hands");
+            Assert.That(Vector3.Distance(hands.Find("Right Hand").position, throttle.Handle.position + throttle.Handle.right * 0.11f), Is.LessThan(0.015f));
+            Assert.That(Vector3.Distance(hands.Find("Left Hand").position, throttle.Handle.position), Is.GreaterThan(0.2f));
+            actor.ReleaseThrottle();
+            Assert.That(train.Throttle, Is.EqualTo(0.25f));
+            Assert.That(view.IsUsingHandControl, Is.False);
+            view.ApplyLook(new Vector2(10f, 10f));
+            Assert.That(Quaternion.Angle(camera.rotation, beforeLook), Is.GreaterThan(0.5f));
+            camera.localRotation = Quaternion.identity;
+            Physics.SyncTransforms();
+            Vector3 leverDirection = throttle.Handle.position - camera.position;
+            Assert.That(Physics.Raycast(camera.position, leverDirection.normalized, out RaycastHit leverHit, 3f), Is.True);
+            Assert.That(leverHit.collider.GetComponentInParent<TrainThrottleLever>(), Is.EqualTo(throttle));
             foreach (TrainControl control in cars[0].GetComponentsInChildren<TrainControl>())
             {
                 Vector3 direction = control.transform.position - camera.position;
-                Assert.That(direction.magnitude, Is.LessThan(3f), control.Kind + " must be reachable from the seat.");
+                Assert.That(direction.magnitude, Is.LessThan(3f));
                 Assert.That(Physics.Raycast(camera.position, direction.normalized, out RaycastHit hit, 3f), Is.True);
-                Assert.That(hit.collider.GetComponent<TrainControl>(), Is.EqualTo(control), control.Kind + " must have clear aim from the seat.");
+                Assert.That(hit.collider.GetComponent<TrainControl>(), Is.EqualTo(control));
             }
             train.enabled = true; driver.Movement = Vector2.one; driver.Jump = true;
             Vector3 local = cars[0].transform.InverseTransformPoint(player.transform.position);
             yield return Wait(1f);
             Assert.That(motor.IsSeated, Is.True);
             Assert.That(Vector3.Distance(cars[0].transform.InverseTransformPoint(player.transform.position), local), Is.LessThan(0.015f));
+            Assert.That(train.Speed, Is.GreaterThan(0f));
+            var speedometer = cars[0].GetComponentsInChildren<TrainInstrument>().First(x => x.Condition != null);
+            speedometer.Refresh(); StringAssert.Contains(train.Speed.ToString("F1"), speedometer.DisplayedText);
+            Assert.That(actor.TryGrabThrottle(throttle), Is.True);
             Assert.That(motor.ExitSeat(), Is.True);
+            Assert.That(actor.DragThrottle(new Vector2(0f, 75f)), Is.False);
+            Assert.That(actor.IsUsingHandControl, Is.False);
             driver.Movement = Vector2.zero;
-            Assert.That(throttle.Interact(actor), Is.False);
+            Assert.That(actor.TryGrabThrottle(throttle), Is.False);
             yield return Wait(0.3f);
             Assert.That(motor.Grounded, Is.True);
+        }
+
+        [Test]
+        public void LeverGrabUsesHeldLeftMouseButtonAndReadsForwardMotion()
+        {
+            Mouse previous = Mouse.current;
+            Mouse mouse = InputSystem.AddDevice<Mouse>();
+            var reader = player.GetComponent<PlayerInputReader>();
+            var background = InputSystem.settings.backgroundBehavior;
+            var editorInput = InputSystem.settings.editorInputBehaviorInPlayMode;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            reader.enabled = true;
+            try
+            {
+                InputSystem.EnableDevice(mouse); InputSystem.Update();
+                InputSystem.QueueStateEvent(mouse, new MouseState { buttons = 1, delta = new Vector2(0f, 75f) }); InputSystem.Update();
+                Assert.That(reader.GrabPressed, Is.True); Assert.That(reader.GrabHeld, Is.True);
+                Assert.That(reader.Look.y, Is.EqualTo(75f));
+                InputSystem.QueueStateEvent(mouse, new MouseState()); InputSystem.Update();
+                Assert.That(reader.GrabHeld, Is.False); Assert.That(reader.GrabPressed, Is.False);
+            }
+            finally
+            {
+                reader.enabled = false;
+                InputSystem.settings.backgroundBehavior = background;
+                InputSystem.settings.editorInputBehaviorInPlayMode = editorInput;
+                InputSystem.RemoveDevice(mouse); if (previous != null && previous.added) previous.MakeCurrent();
+            }
         }
     }
 }

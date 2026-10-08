@@ -1,74 +1,78 @@
-# Ugly train prototype
+# Train prototype
 
-Open `Assets/Movement/Scenes/TrainPlayground.unity` and press Play.
-If missing, use **All Aboard > Create Train Playground**. The original movement
-playground stays available separately; the build scene list is unchanged.
+Open `Assets/Movement/Scenes/TrainPlayground.unity` and press Play. The consist is
+**locomotive -> open coal tender -> passenger -> passenger**. You start on the
+station platform beside the tender. The original movement playground is separate.
 
-You spawn on the station platform beside the coal wagon. Enter its open side
-door, then walk through the center aisles and short connecting walkways to the
-front locomotive. WASD, mouse look, Space, Shift sprint and hold C crouch apply.
+## Balance
 
-## Cab and conductor seat
+| Setting | Value |
+| --- | --- |
+| Starting Steam / Pressure | 50 / 40 |
+| Steam / Pressure per coal | +40 / +5, capped at 100 |
+| Starting coal | 10 pieces |
+| Steam drain at full throttle | 0.5 per second (1 every 2 seconds) |
+| Steam drain at half throttle | 0.25 per second |
+| Steam drain at quarter throttle | 0.125 per second |
+| Steam drain at zero throttle or while braking | 0 |
+| Vent cost | 10 Steam, removes 20 Pressure |
 
-- Aim at the conductor seat and press E to sit. You can look around while seated.
-- The two buttons on its left armrest raise/lower throttle by 25% with E.
-  They only work for the seated occupant. Standing beside them cannot operate them.
-- To stand, look away from cab controls and press E. Movement and jumping are
-  locked while seated; leaving the seat restores walking.
-- Aim at the physical cab buttons and press E: brake toggle, reverse toggle,
-  firebox, vent, whistle, bell, side-door toggle, and speedometer damage test.
-- Brakes override throttle. Release brakes to drive again. Reverse is slower;
-  use brakes to stop before changing direction for predictable maneuvers.
-- The roof ladder is at the rear right of the locomotive. Aim at its orange
-  interaction block and press E to climb; the upper block returns you inside.
-  Climbing follows the moving car. Flat roofs and short bridges connect all cars.
+A complete 40-Steam coal refill supplies 80 seconds at full throttle. Starting
+Steam lasts 100 seconds at full throttle. Values drain smoothly over time; high
+Steam no longer multiplies consumption above the full-throttle rate. Pressure
+generation still increases at high Steam. Weight slows acceleration without
+increasing Steam use. Normal Steam range remains 20–80; low Steam reduces pulling
+power, and high Steam allows overspeed. At 100 Steam the gauge warns CRITICAL.
 
-## Objects, resources and couplers
+## Controls and coal
 
-- Ten physical black coal cubes start in the storage car. Aim and E to pick up,
-  carry one to the locomotive, then aim at the FIREBOX button and E to consume it.
-  Each adds 10 Steam and 5 Pressure, clamped to 100. Other items are rejected.
-- Tap Q to drop or hold Q and release to throw. Hands return after release.
-- Two purple ScrapTest items start in the rear passenger car. Carry one near a
-  solid train surface and press German Z (physical Y on a US keyboard) to weld.
-  Welded items contribute their mass to the connected train and cannot be picked
-  up with E. Aim at a highlighted welded item and press Z to free it first.
-- The orange coupler switches near the ends of cars disconnect linked cars.
-  E on a free switch reconnects a nearby compatible coupler once stopped.
-  Detached cars stay on their rail positions, with their interiors and doors
-  usable; reverse the locomotive toward them to reconnect.
-- Steam starts at 50, Pressure at 40. Normal Steam range is 20–80. Low Steam
-  reduces acceleration and speed; high Steam allows overspeed but increases
-  Steam use and Pressure gain. At 100 Steam a red critical warning appears.
-  Venting removes 20 Pressure and costs 10 Steam. Brakes use Pressure and still
-  work without Steam, with reduced force when Pressure is exhausted.
-- Connected cars, players aboard and welded items add weight. More weight slows
-  acceleration without directly increasing Steam consumption. Extra Test Weight
-  on TrainWeight can demonstrate this quickly in the Inspector.
-- DAMAGE TEST removes 25 speedometer condition per use. At zero its display
-  reads BROKEN and the debug speed readout also stops reporting accurate speed.
-  Steam, Pressure and train motion keep working.
+WASD walk, mouse look, Space jump, Shift sprint, hold C crouch.
 
-The railway includes a long straight, a gentle curve, end buffers, a station
-platform with a green stop marker, and two basic rooms. Cars follow sampled
-rail distance; visual wheels have no wheel physics. Stop beside the platform
-using brakes, or reverse back toward it. End-of-track limits stop the consist.
+- Aim at the conductor seat and E to sit. The throttle lever is at the front of
+  the left armrest. Aim at its round handle, **hold M1**, and move the mouse forward
+  to increase throttle or back to decrease it. One hand holds the moving lever;
+  the camera stays fixed during the drag. Release M1 to let go; throttle remains
+  at the selected position. A full stroke uses about 300 pixels of mouse travel.
+  The lever only responds to the seated occupant, and cannot be used while carrying.
+- Look away from cab controls and E to stand. E during a lever drag releases the
+  grip first. Escape or loss of focus also lets go. The speed gauge shows actual
+  train speed as the locomotive accelerates toward the throttle's requested speed.
+- Cab buttons use E. Top row, left to right: brake, reverse, firebox, vent.
+  Lower row: whistle, bell, door, speedometer damage test. Only gauges have labels;
+  world signs, button labels and the default debug HUD have been removed/hidden.
+- The black open tender has low side guards and a clear center aisle. Coal stock
+  stays fixed to it through acceleration, braking and turns. Look at a coal piece
+  to highlight it, then E to pick it up. Taking it out restores ordinary item
+  physics. Bring it to the cab, aim at the firebox button and E to consume it.
+- Tap Q to drop, or hold Q and release to throw. Taken coal and purple ScrapTest
+  items behave as ordinary physical items. German Z (physical Y on a US keyboard)
+  welds a held item against a nearby suitable surface. Welded items cannot be
+  picked up with E: aim at the highlighted item and Z to release it first.
+- The locomotive's rear-right ladder uses E to climb to its roof and return.
+  The tender intentionally has no roof. The two passenger roofs remain connected
+  by a short roof walkway; all four floor decks remain connected and walkable.
+- Orange switches at carriage ends disconnect couplers. E on a free switch
+  reconnects nearby compatible ends after stopping the train. Detached cars stay
+  on their track positions. Brakes work without Steam, using Pressure; reverse
+  is intentionally slower. The green platform strip marks the stop area.
+
+Steam hiss fades with throttle and stops when braking or out of Steam. Each car
+has a soft rolling rhythm that changes with speed and fades away when stopped;
+uncoupled stationary cars stop producing it. Whistle and bell remain separate E
+controls. Volumes, fade time and reference speed are configurable on TrainDriveAudio.
+All four train clips are original synthesized placeholders generated with the
+Python offline tool `Tools/create_train_sounds.py`.
 
 ## Technical scope
 
-Single-player prototype, primitive geometry, temporary values and original soft
-synthesized whistle/bell sounds. Runtime gameplay is C#; `Tools/create_train_sounds.py`
-is a Python offline audio generator. There is no multiplayer, Steam publishing,
-repair system or final artwork here. Doors slide upward and the ladder uses a
-short guided climb; both can be replaced with designed assets later.
+Runtime gameplay is C#. Single-player prototype with primitive geometry and a
+straight/curved test railway. Rail motion, resources, couplers, weight, sound,
+lever input and damage are separate modules under `Assets/Movement/Runtime/Train`.
+The speedometer can still be broken with four presses of its test button; it then
+reads BROKEN. Networking, Steam publishing, repairs and final train artwork are
+future work. The supplied train screenshots guide later visual design.
 
-Movement, rail following, resources, coupling, weight, controls and component
-condition are separate modules under `Assets/Movement/Runtime/Train`. Tune their
-serialized values in the Inspector. `TrainPrototypeBuilder` generates the scene
-and reusable car/item prefabs without overwriting an existing scene.
-
-Run **Window > General > Test Runner > PlayMode** for the existing movement and
-object regressions plus train scene tests. These cover interiors, moving roofs,
-ladder travel, jumps, seated throttle restrictions, train controls, resources,
-coupling, weight, damage and loose/welded items. Automated validation does not
-replace your own play-through for subjective feel and final visual design.
+Run **Window > General > Test Runner > PlayMode**. Checks cover movement on moving
+cars, coal storage/pickup/firebox, precise Steam balance, one-hand lever input and
+camera lock, throttle limits, sound response, couplers, weight and item physics.
+The existing movement and object regression suite remains included.

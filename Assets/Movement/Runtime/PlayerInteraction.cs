@@ -22,6 +22,29 @@ namespace AllAboard.Movement
         private PickupObject hovered;
         private PickupObject held;
         private PrototypeInteractable hoveredControl;
+        private AllAboard.Train.TrainThrottleLever grabbedLever;
+        [SerializeField] private bool showInteractionPrompts = true;
+        public bool IsUsingHandControl => grabbedLever != null;
+        public bool IsPressingHoveredLever => input.GrabPressed && hoveredControl is AllAboard.Train.TrainThrottleLever && !IsHolding && GetComponent<FirstPersonMotor>().IsSeated;
+        public void ShowInteractionPrompts(bool show) => showInteractionPrompts = show;
+        public bool TryGrabThrottle(AllAboard.Train.TrainThrottleLever lever)
+        {
+            if (grabbedLever != null || lever == null || !lever.BeginGrip(this)) return false;
+            grabbedLever = lever;
+            view.SetHandControlTarget(lever.Handle);
+            return true;
+        }
+        public bool DragThrottle(Vector2 delta)
+        {
+            if (grabbedLever == null || !grabbedLever.Drag(this, delta)) { ReleaseThrottle(); return false; }
+            return true;
+        }
+        public void ReleaseThrottle()
+        {
+            if (grabbedLever != null) grabbedLever.EndGrip(this);
+            grabbedLever = null;
+            if (view != null) view.SetHandControlTarget(null);
+        }
         private Texture2D dot;
         private bool charging;
         private float chargeTime;
@@ -52,8 +75,15 @@ namespace AllAboard.Movement
             hoveredControl = null;
             if (cameraPivot == null || !input.HasControl)
             {
+                ReleaseThrottle();
                 charging = false;
                 chargeTime = 0f;
+                return;
+            }
+            if (grabbedLever != null)
+            {
+                if (!input.GrabHeld || input.InteractPressed) ReleaseThrottle();
+                else DragThrottle(input.Look);
                 return;
             }
             float nearestDistance = reach;
@@ -64,6 +94,11 @@ namespace AllAboard.Movement
                 nearestDistance = hit.distance;
                 hoveredControl = hit.collider.GetComponentInParent<PrototypeInteractable>();
                 SetHovered(held == null ? hit.collider.GetComponentInParent<PickupObject>() : null);
+            }
+            if (input.GrabPressed && hoveredControl is AllAboard.Train.TrainThrottleLever lever && TryGrabThrottle(lever))
+            {
+                DragThrottle(input.Look);
+                return;
             }
             if (input.InteractPressed)
             {
@@ -276,11 +311,11 @@ namespace AllAboard.Movement
 
         private void OnGUI()
         {
-            if (held == null && dot != null && input.HasControl)
+            if (held == null && !IsUsingHandControl && dot != null && input.HasControl)
                 GUI.DrawTexture(new Rect((Screen.width - 7f) * 0.5f, (Screen.height - 7f) * 0.5f, 7f, 7f), dot);
-            if (input.HasControl && hoveredControl != null)
+            if (showInteractionPrompts && input.HasControl && hoveredControl != null)
                 GUI.Label(new Rect(Screen.width * 0.5f - 160f, Screen.height * 0.5f + 20f, 320f, 40f), hoveredControl.Prompt);
-            else if (input.HasControl && hovered != null && hovered.IsWelded)
+            else if (showInteractionPrompts && input.HasControl && hovered != null && hovered.IsWelded)
                 GUI.Label(new Rect(Screen.width * 0.5f - 70f, Screen.height * 0.5f + 20f, 200f, 30f), input.WeldKeyLabel + ": release weld");
             if (held != null && charging && input.HasControl)
             {
@@ -296,6 +331,7 @@ namespace AllAboard.Movement
 
         private void OnDisable()
         {
+            ReleaseThrottle();
             SetHovered(null);
             Drop();
         }

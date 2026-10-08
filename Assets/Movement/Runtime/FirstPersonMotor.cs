@@ -190,6 +190,8 @@ namespace AllAboard.Movement
                 // Follow the body directly: a loose or welded cube can be the rider's
                 // immediate support even when its own motion comes from a platform.
                 nearest = hit.collider.attachedRigidbody;
+                var storedCoal = nearest != null ? nearest.GetComponent<AllAboard.Train.CoalItem>() : null;
+                if (storedCoal != null && storedCoal.IsStored) nearest = storedCoal.StorageCar.Body;
             }
             return nearest;
         }

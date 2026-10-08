@@ -52,25 +52,28 @@ namespace AllAboard.Editor
             Box(station.transform, "Boarding Step 2", new Vector3(7.5f, 0.3f, -18f), new Vector3(1.2f, 0.6f, 4f), deck);
             Box(station.transform, "Boarding Step 3", new Vector3(7f, 0.45f, -18f), new Vector3(1.2f, 0.9f, 4f), deck);
             Box(station.transform, "Stop Area Marker", new Vector3(4.8f, 1.165f, 20f), new Vector3(5f, 0.025f, 1.5f), Material("TrainStop", new Color(0.4f, 0.78f, 0.35f)));
-            Label(station.transform, "STOP ZONE", new Vector3(6f, 2.5f, 20f), 0.12f);
             Room("Station Test Room", new Vector3(16f, 0f, 12f), new Vector2(10f, 12f));
             Room("Workshop Test Room", new Vector3(-13f, 0f, -8f), new Vector2(12f, 14f));
             var controller = new GameObject("Train Systems").AddComponent<TrainController>();
             var cars = new TrainCar[4];
             for (int i = 0; i < 4; i++)
             {
-                int type = i == 0 ? 0 : i == 3 ? 2 : 1;
+                int type = i == 0 ? 0 : i == 1 ? 2 : 1;
                 cars[i] = ((GameObject)PrefabUtility.InstantiatePrefab(prefabs[type], scene)).GetComponent<TrainCar>();
-                cars[i].name = i == 0 ? "Locomotive" : i == 3 ? "Coal Storage Car" : "Passenger Car " + i;
+                cars[i].name = i == 0 ? "Locomotive" : i == 1 ? "Coal Storage Car" : "Passenger Car " + i;
             }
             controller.Configure(path, cars);
+            controller.gameObject.AddComponent<TrainDriveAudio>().Configure(controller,
+                AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/TrainSteamLoop.wav"),
+                AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/TrainRollingLoop.wav"));
             DamageableComponent speedometer = AddCabControls(controller, cars[0]);
             controller.gameObject.AddComponent<TrainDebugHud>().Configure(controller, speedometer);
             for (int i = 0; i < 10; i++)
             {
                 var coal = (GameObject)PrefabUtility.InstantiatePrefab(coalPrefab, scene);
                 coal.name = "Physical Coal " + (i + 1);
-                coal.transform.position = cars[3].transform.TransformPoint(new Vector3(i % 2 == 0 ? -0.65f : 0.65f, 1.5f, 2f - (i / 2) * 0.9f));
+                coal.transform.position = cars[1].transform.TransformPoint(new Vector3(i % 2 == 0 ? -1.15f : 1.15f, 1.325f, 2f - (i / 2) * 0.9f));
+                coal.GetComponent<CoalItem>().StoreIn(cars[1]);
             }
             for (int i = 0; i < 2; i++)
             {
@@ -78,7 +81,8 @@ namespace AllAboard.Editor
                 scrap.transform.position = cars[2].transform.TransformPoint(new Vector3(-0.8f, 1.6f, i * 1.2f));
             }
             var player = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Movement/Prefabs/PrototypePlayer.prefab"), scene);
-            player.transform.position = new Vector3(4f, 1.2f, -7f);
+            player.transform.position = new Vector3(3f, 1.2f, 12f);
+            player.GetComponent<PlayerInteraction>().ShowInteractionPrompts(false);
             player.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
             var sun = new GameObject("Sun").AddComponent<Light>(); sun.type = LightType.Directional; sun.intensity = 1.6f;
             sun.shadows = LightShadows.Soft; sun.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
@@ -97,7 +101,9 @@ namespace AllAboard.Editor
             var root = new GameObject(name);
             TrainCar car = root.AddComponent<TrainCar>();
             car.Body.isKinematic = true; car.Body.useGravity = false; car.Body.interpolation = RigidbodyInterpolation.Interpolate;
-            Box(root.transform, "Walkable Floor", new Vector3(0f, 1.05f, 0f), new Vector3(3.8f, 0.2f, 8.8f), deck);
+            Box(root.transform, "Walkable Floor", new Vector3(0f, 1.05f, 0f), new Vector3(3.8f, 0.2f, 8.8f), kind == CarKind.Coal ? Material("Coal", new Color(0.06f, 0.065f, 0.08f)) : deck);
+            if (kind != CarKind.Coal)
+            {
             Box(root.transform, "Left Wall", new Vector3(-1.9f, 2.5f, 0f), new Vector3(0.15f, 2.8f, 8.8f), shell);
             Box(root.transform, "Right Rear Wall", new Vector3(1.9f, 2.5f, -1.95f), new Vector3(0.15f, 2.8f, 4.9f), shell);
             Box(root.transform, "Right Front Wall", new Vector3(1.9f, 2.5f, 3.45f), new Vector3(0.15f, 2.8f, 1.9f), shell);
@@ -117,7 +123,6 @@ namespace AllAboard.Editor
                 for (int i = 0; i < 9; i++) VisualBox(root.transform, "Ladder Rung", new Vector3(1.1f, 1.4f + i * 0.3f, -3.45f), new Vector3(0.7f, 0.05f, 0.08f), metal);
                 foreach (float y in new[] { 2f, 4.8f })
                     Box(root.transform, "Ladder Interaction", new Vector3(1.6f, y, -3f), new Vector3(0.15f, 0.3f, 0.3f), doorMaterial).AddComponent<TrainLadder>().Configure(car);
-                Label(root.transform, "E: ROOF LADDER", new Vector3(1.1f, 2.2f, -3.3f), 0.045f);
             }
             else Box(root.transform, "Walkable Roof", new Vector3(0f, 4f, 0f), new Vector3(3.8f, 0.2f, 8.8f), deck);
             if (kind == CarKind.Passenger)
@@ -131,6 +136,14 @@ namespace AllAboard.Editor
             var door = switchRoot.AddComponent<TrainDoor>(); door.Configure(panel.transform, panel.transform.localPosition);
             Box(switchRoot.transform, "Outside Door Button", new Vector3(2.08f, 2f, 0.2f), new Vector3(0.2f, 0.3f, 0.3f), doorMaterial);
             Box(switchRoot.transform, "Inside Door Button", new Vector3(1.72f, 2f, 0.2f), new Vector3(0.2f, 0.3f, 0.3f), doorMaterial);
+            }
+            else
+            {
+                foreach (float side in new[] { -1.9f, 1.9f })
+                    Box(root.transform, "Low Side Guard", new Vector3(side, 1.375f, 0f), new Vector3(0.15f, 0.45f, 8.8f), metal);
+                foreach (float end in new[] { -4.4f, 4.4f }) foreach (float x in new[] { -1.3f, 1.3f })
+                    Box(root.transform, "Low End Guard", new Vector3(x, 1.375f, end), new Vector3(1.2f, 0.45f, 0.15f), metal);
+            }
             foreach (bool front in new[] { true, false })
             {
                 var point = new GameObject(front ? "Front Coupler Point" : "Rear Coupler Point").transform;
@@ -147,7 +160,7 @@ namespace AllAboard.Editor
                 wheel.transform.localRotation = Quaternion.Euler(0f, 0f, 90f); wheel.GetComponent<Renderer>().sharedMaterial = metal; wheelList.Add(wheel.transform);
             }
             GameObject bridge = Box(root.transform, "Rear Walkway", new Vector3(0f, 1.05f, -4.85f), new Vector3(1.5f, 0.2f, 0.9f), deck);
-            GameObject roofBridge = Box(root.transform, "Rear Roof Walkway", new Vector3(0f, 4f, -4.85f), new Vector3(1.5f, 0.2f, 0.9f), deck);
+            GameObject roofBridge = kind == CarKind.Coal ? null : Box(root.transform, "Rear Roof Walkway", new Vector3(0f, 4f, -4.85f), new Vector3(1.5f, 0.2f, 0.9f), deck);
             car.Configure(kind, weight, bridge, roofBridge, wheelList.ToArray());
             prefab = PrefabUtility.SaveAsPrefabAsset(root, file); Object.DestroyImmediate(root); return prefab;
         }
@@ -164,30 +177,28 @@ namespace AllAboard.Editor
                 if (kind == InstrumentKind.Speed) damage = text.gameObject.AddComponent<DamageableComponent>();
                 text.gameObject.AddComponent<TrainInstrument>().Configure(controller, kind, text, kind == InstrumentKind.Speed ? damage : null);
             }
-            var actions = new[] { ControlKind.ThrottleUp, ControlKind.ThrottleDown, ControlKind.Brake, ControlKind.Reverse,
+            var actions = new[] { ControlKind.Brake, ControlKind.Reverse,
                 ControlKind.Firebox, ControlKind.Vent, ControlKind.Whistle, ControlKind.Bell, ControlKind.Door, ControlKind.DamageSpeedometer };
             for (int i = 0; i < actions.Length; i++)
             {
-                if (actions[i] == ControlKind.ThrottleUp || actions[i] == ControlKind.ThrottleDown) continue;
                 Vector3 p = new Vector3(-0.9f + (i % 4) * 0.6f, 2.6f - (i / 4) * 0.6f, 4f);
                 var button = Box(cab, actions[i].ToString(), p, new Vector3(0.3f, 0.22f, 0.18f), actions[i] == ControlKind.Firebox ? shell : doorMaterial);
                 AudioClip clip = actions[i] == ControlKind.Whistle ? AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/TrainWhistle.wav") :
                     actions[i] == ControlKind.Bell ? AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Movement/Audio/TrainBell.wav") : null;
                 button.AddComponent<TrainControl>().Configure(controller, actions[i], locomotive.GetComponentInChildren<TrainDoor>(), damage, clip);
-                Label(cab, actions[i] == ControlKind.DamageSpeedometer ? "DAMAGE\nTEST" : actions[i].ToString(), p + new Vector3(0f, 0.22f, -0.12f), 0.025f);
             }
             var seatRoot = new GameObject("Conductor Seat"); seatRoot.transform.SetParent(cab, false);
             ConductorSeat seat = seatRoot.AddComponent<ConductorSeat>(); seat.Configure(locomotive);
             Box(seatRoot.transform, "Seat Cushion", new Vector3(-0.85f, 1.75f, 1.6f), new Vector3(0.8f, 0.2f, 0.8f), doorMaterial);
             Box(seatRoot.transform, "Seat Back", new Vector3(-0.85f, 2.2f, 1.2f), new Vector3(0.8f, 0.9f, 0.15f), shell);
             Box(seatRoot.transform, "Throttle Armrest", new Vector3(-1.4f, 1.95f, 1.6f), new Vector3(0.25f, 0.15f, 1.1f), metal);
-            Label(cab, "E: CONDUCTOR SEAT", new Vector3(-0.85f, 2.55f, 1.17f), 0.045f);
-            for (int i = 0; i < 2; i++)
-            {
-                var button = Box(cab, i == 0 ? "Seat Throttle Increase" : "Seat Throttle Decrease", new Vector3(-1.4f, 2.08f, 1.9f - i * 0.55f), new Vector3(0.24f, 0.12f, 0.24f), doorMaterial);
-                var control = button.AddComponent<TrainControl>(); control.Configure(controller, i == 0 ? ControlKind.ThrottleUp : ControlKind.ThrottleDown); control.RestrictToSeat(seat);
-                Label(cab, i == 0 ? "+" : "-", button.transform.localPosition + Vector3.up * 0.065f, 0.025f).transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            }
+            var leverRoot = new GameObject("Seat Throttle Lever"); leverRoot.transform.SetParent(cab, false);
+            leverRoot.transform.localPosition = new Vector3(-1.4f, 2.03f, 2f);
+            VisualBox(leverRoot.transform, "Lever Shaft", new Vector3(0f, 0.19f, 0f), new Vector3(0.045f, 0.38f, 0.045f), metal);
+            var knob = GameObject.CreatePrimitive(PrimitiveType.Sphere); knob.name = "Throttle Grip";
+            knob.transform.SetParent(leverRoot.transform, false); knob.transform.localPosition = new Vector3(0f, 0.38f, 0f);
+            knob.transform.localScale = Vector3.one * 0.18f; knob.GetComponent<Renderer>().sharedMaterial = doorMaterial;
+            leverRoot.AddComponent<TrainThrottleLever>().Configure(controller, seat, knob.transform);
             return damage;
         }
 
@@ -220,7 +231,6 @@ namespace AllAboard.Editor
             foreach (float side in new[] { -1f, 1f }) Box(room.transform, "Front Wall", new Vector3(side * (size.x + 2.4f) * 0.25f, 2f, -size.y * 0.5f), new Vector3((size.x - 2.4f) * 0.5f, 4f, 0.2f), shell);
             Box(room.transform, "Door Header", new Vector3(0f, 3.4f, -size.y * 0.5f), new Vector3(2.4f, 1.2f, 0.2f), shell);
             Box(room.transform, "Room Roof", new Vector3(0f, 4f, 0f), new Vector3(size.x, 0.15f, size.y), deck);
-            Label(room.transform, name, new Vector3(0f, 3.3f, -size.y * 0.5f - 0.15f), 0.12f);
         }
         private static GameObject ItemPrefab(string name, Material material, bool coal, float mass, float scale)
         {

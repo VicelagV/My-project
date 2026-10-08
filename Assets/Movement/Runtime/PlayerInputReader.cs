@@ -13,6 +13,7 @@ namespace AllAboard.Movement
         private InputAction drop;
         private InputAction crouch;
         private InputAction weld;
+        private InputAction grab;
 
         public Vector2 Move => move.ReadValue<Vector2>();
         public Vector2 Look => look.ReadValue<Vector2>();
@@ -24,6 +25,8 @@ namespace AllAboard.Movement
         public bool DropReleased => drop.WasReleasedThisFrame();
         public bool CrouchHeld => crouch.IsPressed();
         public bool WeldPressed => weld.WasPressedThisFrame();
+        public bool GrabPressed => grab.WasPressedThisFrame();
+        public bool GrabHeld => grab.IsPressed();
         public string WeldKeyLabel => Keyboard.current != null ? Keyboard.current.yKey.displayName : "Z";
         public bool HasControl => Application.isFocused && Cursor.lockState == CursorLockMode.Locked;
 
@@ -42,6 +45,7 @@ namespace AllAboard.Movement
             crouch = new InputAction("Crouch", InputActionType.Button, "<Keyboard>/c");
             // Input System names physical keys by US layout: Y is labelled Z on QWERTZ.
             weld = new InputAction("Weld", InputActionType.Button, "<Keyboard>/y");
+            grab = new InputAction("Grab control", InputActionType.Button, "<Mouse>/leftButton");
         }
 
         private void OnEnable()
@@ -54,6 +58,7 @@ namespace AllAboard.Movement
             drop.Enable();
             crouch.Enable();
             weld.Enable();
+            grab.Enable();
             CaptureCursor();
         }
 
@@ -92,6 +97,7 @@ namespace AllAboard.Movement
             drop?.Disable();
             crouch?.Disable();
             weld?.Disable();
+            grab?.Disable();
             ReleaseCursor();
         }
 
@@ -105,6 +111,7 @@ namespace AllAboard.Movement
             drop?.Dispose();
             crouch?.Dispose();
             weld?.Dispose();
+            grab?.Dispose();
         }
     }
 }

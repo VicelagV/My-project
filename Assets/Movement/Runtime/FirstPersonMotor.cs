@@ -36,6 +36,17 @@ namespace AllAboard.Movement
         private Quaternion supportRotation;
         private Vector3 supportVelocity;
         private Vector3 airMomentum;
+        private Transform climbCarrier;
+        private Vector3 climbStart;
+        private Vector3 climbEnd;
+        private float climbTime;
+        private float climbDuration;
+        private Transform seatCarrier;
+        private Vector3 seatedLocal;
+        private Vector3 seatExitLocal;
+        public bool IsSeated => seatCarrier != null;
+        public bool IsClimbing => climbCarrier != null;
+        public Rigidbody SupportBody => support;
         public Vector3 WorldVelocity { get; private set; }
         public Vector3 SupportDisplacement { get; private set; }
         public float RelativeGroundDistance { get; private set; }
@@ -64,6 +75,9 @@ namespace AllAboard.Movement
         public void Simulate(Vector2 movement, bool jumpPressed, float deltaTime, bool sprint = false)
         {
             if (deltaTime <= 0f) return;
+            if (IsSeated) { AdvanceSeat(); return; }
+            if (IsClimbing) { AdvanceClimb(deltaTime); return; }
+            if (!controller.enabled) { controller.enabled = true; support = null; }
             Vector3 frameStart = transform.position;
             bool previouslyGrounded = controller.isGrounded;
             SupportDisplacement = Vector3.zero;
@@ -138,6 +152,8 @@ namespace AllAboard.Movement
 
         public void Respawn()
         {
+            climbCarrier = null;
+            seatCarrier = null;
             controller.enabled = false;
             transform.position = spawnPosition;
             ApplyStance(false);
@@ -153,6 +169,7 @@ namespace AllAboard.Movement
 
         public bool SetCrouched(bool crouched)
         {
+            if (IsClimbing || IsSeated) return false;
             if (crouched == IsCrouched) return true;
             if (!crouched && IsCrouched && !CanStand()) return false;
             ApplyStance(crouched);
@@ -202,6 +219,71 @@ namespace AllAboard.Movement
             controller.height = height;
             controller.center = standingCenter - Vector3.up * ((standingHeight - height) * 0.5f);
             IsCrouched = crouched;
+        }
+
+        public bool BeginClimb(Transform carrier, Vector3 destinationLocal, float duration = 1.2f)
+        {
+            if (carrier == null || IsClimbing || IsSeated || carrier.GetComponent<Rigidbody>() == null) return false;
+            climbCarrier = carrier;
+            climbStart = carrier.InverseTransformPoint(transform.position);
+            climbEnd = destinationLocal;
+            climbTime = 0f;
+            climbDuration = Mathf.Max(0.1f, duration);
+            supportRotation = carrier.rotation;
+            support = carrier.GetComponent<Rigidbody>();
+            horizontalVelocity = airMomentum = Vector3.zero;
+            verticalVelocity = -2f;
+            controller.enabled = false;
+            return true;
+        }
+
+        private void AdvanceClimb(float deltaTime)
+        {
+            climbTime += deltaTime;
+            float amount = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(climbTime / climbDuration));
+            transform.position = climbCarrier.TransformPoint(Vector3.Lerp(climbStart, climbEnd, amount));
+            Quaternion turn = climbCarrier.rotation * Quaternion.Inverse(supportRotation);
+            transform.Rotate(Vector3.up, Mathf.DeltaAngle(0f, turn.eulerAngles.y), Space.World);
+            supportRotation = climbCarrier.rotation;
+            WorldVelocity = support.GetPointVelocity(transform.position) + (climbEnd - climbStart) / climbDuration;
+            SupportDisplacement = Vector3.zero;
+            RelativeGroundDistance = 0f;
+            if (climbTime < climbDuration) return;
+            climbCarrier = null;
+            controller.enabled = true;
+            supportLocalPosition = support.transform.InverseTransformPoint(transform.position);
+            supportWorldPosition = transform.position;
+        }
+
+        public bool BeginSeat(Transform carrier, Vector3 localFeet, Vector3 localExit)
+        {
+            if (carrier == null || IsClimbing || IsSeated || carrier.GetComponent<Rigidbody>() == null) return false;
+            seatCarrier = carrier; seatedLocal = localFeet; seatExitLocal = localExit;
+            support = carrier.GetComponent<Rigidbody>(); supportRotation = carrier.rotation;
+            controller.enabled = false; ApplyStance(true);
+            horizontalVelocity = airMomentum = Vector3.zero;
+            AdvanceSeat(); return true;
+        }
+        private void AdvanceSeat()
+        {
+            Vector3 before = transform.position;
+            transform.position = seatCarrier.TransformPoint(seatedLocal);
+            Quaternion turn = seatCarrier.rotation * Quaternion.Inverse(supportRotation);
+            transform.Rotate(Vector3.up, Mathf.DeltaAngle(0f, turn.eulerAngles.y), Space.World);
+            supportRotation = seatCarrier.rotation;
+            SupportDisplacement = transform.position - before;
+            WorldVelocity = support.GetPointVelocity(transform.position);
+            RelativeGroundDistance = 0f;
+        }
+        public bool ExitSeat()
+        {
+            if (!IsSeated) return false;
+            transform.position = seatCarrier.TransformPoint(seatExitLocal);
+            seatCarrier = null; ApplyStance(false); controller.enabled = true;
+            verticalVelocity = -2f;
+            supportLocalPosition = support.transform.InverseTransformPoint(transform.position);
+            supportWorldPosition = transform.position;
+            return true;
         }
     }
 }

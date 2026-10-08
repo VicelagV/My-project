@@ -17,6 +17,7 @@ namespace AllAboard.Movement
         private Collider weldedSurface;
         public bool IsHeld { get; private set; }
         public bool IsWelded => weld != null;
+        public Rigidbody WeldedBody => weld != null ? weld.connectedBody : null;
         public Rigidbody Body => body;
         public BoxCollider Shape => box;
         public float Radius => Vector3.Scale(box.size, transform.lossyScale).magnitude * 0.5f;
@@ -39,8 +40,7 @@ namespace AllAboard.Movement
 
         public bool BeginHold(Collider playerCollider)
         {
-            if (IsHeld) return false;
-            RemoveWeld();
+            if (IsHeld || IsWelded) return false;
             if (restoreCollision != null)
             {
                 StopCoroutine(restoreCollision);
@@ -94,10 +94,31 @@ namespace AllAboard.Movement
 
         private void RemoveWeld()
         {
-            if (weld != null) Destroy(weld);
+            if (weld != null)
+            {
+                // Restore the body pair before destroying the joint so resting items
+                // immediately regain floor contacts when their weld is released.
+                weld.enableCollision = true;
+                weld.connectedBody = null;
+                Destroy(weld);
+            }
             weld = null;
             weldedSurface = null;
             if (body != null && !body.isKinematic) body.WakeUp();
+        }
+
+        public bool Unweld()
+        {
+            if (!IsWelded || IsHeld) return false;
+            Vector3 velocity = weld.connectedBody != null ? weld.connectedBody.GetPointVelocity(body.position) : Vector3.zero;
+            Vector3 angular = weld.connectedBody != null ? weld.connectedBody.angularVelocity : Vector3.zero;
+            RemoveWeld();
+            // Rebuild contacts after the joint suppressed collisions with its connected body.
+            box.enabled = false;
+            box.enabled = true;
+            body.linearVelocity = velocity;
+            body.angularVelocity = angular;
+            return true;
         }
 
         private void FixedUpdate()

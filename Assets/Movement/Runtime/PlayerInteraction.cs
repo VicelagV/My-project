@@ -21,6 +21,7 @@ namespace AllAboard.Movement
         private CharacterController playerCollider;
         private PickupObject hovered;
         private PickupObject held;
+        private PrototypeInteractable hoveredControl;
         private Texture2D dot;
         private bool charging;
         private float chargeTime;
@@ -29,6 +30,7 @@ namespace AllAboard.Movement
         public float Charge => Mathf.Clamp01(chargeTime / chargeDuration);
 
         public bool IsHolding => held != null;
+        public PickupObject HeldItem => held;
         public void Configure(Transform pivot) => cameraPivot = pivot;
 
         private void Awake()
@@ -47,17 +49,27 @@ namespace AllAboard.Movement
         private void Update()
         {
             SetHovered(null);
+            hoveredControl = null;
             if (cameraPivot == null || !input.HasControl)
             {
                 charging = false;
                 chargeTime = 0f;
                 return;
             }
-            if (held == null)
+            float nearestDistance = reach;
+            foreach (RaycastHit hit in Physics.RaycastAll(cameraPivot.position, cameraPivot.forward, reach,
+                Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
             {
-                if (Physics.Raycast(cameraPivot.position, cameraPivot.forward, out RaycastHit hit, reach,
-                    Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
-                    SetHovered(hit.collider.GetComponentInParent<PickupObject>());
+                if (hit.collider == playerCollider || (held != null && hit.collider.attachedRigidbody == held.Body) || hit.distance > nearestDistance) continue;
+                nearestDistance = hit.distance;
+                hoveredControl = hit.collider.GetComponentInParent<PrototypeInteractable>();
+                SetHovered(held == null ? hit.collider.GetComponentInParent<PickupObject>() : null);
+            }
+            if (input.InteractPressed)
+            {
+                var motor = GetComponent<FirstPersonMotor>();
+                if (motor.IsSeated && (hoveredControl == null || !hoveredControl.AllowedWhileSeated)) { motor.ExitSeat(); return; }
+                if (hoveredControl != null) { hoveredControl.Interact(this); return; }
             }
             if (held != null)
             {
@@ -66,6 +78,7 @@ namespace AllAboard.Movement
                 if (charging && input.DropHeld) chargeTime += Time.deltaTime;
                 if (charging && input.DropReleased) ReleaseCharged(chargeTime);
             }
+            else if (input.WeldPressed && hovered != null && hovered.IsWelded) TryUnweld(hovered);
             else if (input.InteractPressed && hovered != null) TryPickup(hovered);
         }
 
@@ -210,6 +223,37 @@ namespace AllAboard.Movement
             return true;
         }
 
+        public bool TryUnweld(PickupObject item)
+        {
+            if (held != null || item == null || cameraPivot == null || !item.IsWelded ||
+                Vector3.Distance(cameraPivot.position, item.transform.position) > reach) return false;
+            // Aimed release must respect intervening walls, just like highlighting.
+            float nearest = reach;
+            PickupObject aimed = null;
+            foreach (RaycastHit hit in Physics.RaycastAll(cameraPivot.position, cameraPivot.forward, reach,
+                Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            {
+                if (hit.collider == playerCollider || hit.distance > nearest) continue;
+                nearest = hit.distance;
+                aimed = hit.collider.GetComponentInParent<PickupObject>();
+            }
+            if (aimed != item || !item.Unweld()) return false;
+            Welded?.Invoke();
+            return true;
+        }
+
+        public bool ConsumeHeldItem()
+        {
+            if (held == null) return false;
+            GameObject consumed = held.gameObject;
+            held = null;
+            charging = false;
+            chargeTime = 0f;
+            view.SetHeldObject(null);
+            Destroy(consumed);
+            return true;
+        }
+
         public void ReleaseCharged(float secondsHeld)
         {
             float amount = Mathf.Clamp01(secondsHeld / chargeDuration);
@@ -234,6 +278,10 @@ namespace AllAboard.Movement
         {
             if (held == null && dot != null && input.HasControl)
                 GUI.DrawTexture(new Rect((Screen.width - 7f) * 0.5f, (Screen.height - 7f) * 0.5f, 7f, 7f), dot);
+            if (input.HasControl && hoveredControl != null)
+                GUI.Label(new Rect(Screen.width * 0.5f - 160f, Screen.height * 0.5f + 20f, 320f, 40f), hoveredControl.Prompt);
+            else if (input.HasControl && hovered != null && hovered.IsWelded)
+                GUI.Label(new Rect(Screen.width * 0.5f - 70f, Screen.height * 0.5f + 20f, 200f, 30f), input.WeldKeyLabel + ": release weld");
             if (held != null && charging && input.HasControl)
             {
                 Rect bar = new Rect(Screen.width * 0.5f - 60f, Screen.height * 0.5f + 30f, 120f, 8f);

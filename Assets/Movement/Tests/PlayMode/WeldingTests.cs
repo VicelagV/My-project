@@ -49,7 +49,7 @@ namespace AllAboard.Movement.Tests
         }
 
         [UnityTest]
-        public IEnumerator WeldToWallStaysFixedAndPickupDetachesIt()
+        public IEnumerator WeldToWallStaysFixedUntilAimedWeldKeyRelease()
         {
             int feedback = 0;
             interaction.Welded += () => feedback++;
@@ -67,15 +67,42 @@ namespace AllAboard.Movement.Tests
             Assert.That(cube.transform.parent, Is.Null);
             Transform hands = player.transform.Find("Player Camera/Floating Hands");
             Assert.That(hands.Find("Left Hand").localPosition.z, Is.EqualTo(0.5f).Within(0.08f));
-            Assert.That(interaction.TryPickup(item), Is.True);
+            Assert.That(interaction.TryPickup(item), Is.False);
+            Assert.That(item.BeginHold(player.GetComponent<CharacterController>()), Is.False);
+            player.transform.Find("Player Camera").rotation = Quaternion.LookRotation(cube.transform.position - player.transform.Find("Player Camera").position);
+            Assert.That(interaction.TryUnweld(item), Is.True);
             Assert.That(item.IsWelded, Is.False);
             yield return null;
             Assert.That(cube.GetComponent<FixedJoint>(), Is.Null);
-            interaction.Drop();
             yield return Wait(0.3f);
             Assert.That(cube.transform.position.y, Is.LessThan(position.y - 0.2f));
+            cube.transform.position = new Vector3(0f, 1.42f, 1f);
+            Physics.SyncTransforms();
+            Assert.That(interaction.TryPickup(item), Is.True);
         }
 
+        [UnityTest]
+        public IEnumerator WeldReleaseRequiresAimAndClearLineOfSight()
+        {
+            Assert.That(interaction.TryPickup(item), Is.True);
+            Assert.That(interaction.TryWeld(), Is.True);
+            Transform camera = player.transform.Find("Player Camera");
+            camera.rotation = Quaternion.LookRotation(Vector3.back);
+            Assert.That(interaction.TryUnweld(item), Is.False);
+            camera.rotation = Quaternion.LookRotation(cube.transform.position - camera.position);
+            GameObject blocker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            try
+            {
+                blocker.transform.position = Vector3.Lerp(camera.position, cube.transform.position, 0.5f);
+                blocker.transform.localScale = Vector3.one * 0.2f;
+                Physics.SyncTransforms();
+                Assert.That(interaction.TryUnweld(item), Is.False);
+            }
+            finally { Object.DestroyImmediate(blocker); }
+            yield return null;
+            Assert.That(interaction.TryUnweld(item), Is.True);
+            Assert.That(interaction.IsHolding, Is.False);
+        }
         [Test]
         public void WeldUsesPhysicalYKeyForGermanZ()
         {

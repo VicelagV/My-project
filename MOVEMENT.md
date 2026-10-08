@@ -14,7 +14,8 @@ If the scene is missing, use **All Aboard > Create Movement Playground**.
 - German Z (physical Y on a US keyboard): weld the held cube to the solid surface
   you are holding it towards. Bring its face within 15 cm of the surface first.
   It snaps to a small contact gap, the hands let go, and the center dot returns.
-  E picks up a welded cube again and removes its weld. Pressing weld away from
+  A welded cube cannot be picked up with E. Aim at it until highlighted and
+  press German Z to release the weld; then E can pick it up. Pressing weld away from
   a surface keeps the cube in your hands.
   Welds use fixed physics joints, including connections to moving bodies;
   a cube welded to the platform moves and turns with it. Removing the welded
@@ -68,8 +69,8 @@ The video reference informs the first-person presentation; these controls are
 a starting point, not a measured recreation of its movement.
 
 This is a single-player movement and object physics foundation. The moving test
-platform provides the initial support and momentum system; a full train,
-networking, and Steam integration are future work.
+platform provides the initial support and momentum system. See TRAIN.md for the
+separate four-car train prototype; networking and Steam integration are future work.
 Tune Travel, Period, and Yaw Amplitude on `MovingTestPlatform.prefab`.
 Hands are cosmetic and have no colliders. Character movement uses Unity's
 CharacterController; the player does not push Rigidbody objects by walking yet.
@@ -91,8 +92,8 @@ Regression checks also cover crouched floor-facing pickup on a moving deck,
 pickup/drop over a thin suspended floor, and sprinting into a wall while carrying,
 then sliding sideways and backing away without folding the hands into the camera.
 Welding checks cover the German keyboard binding, static and moving attachments,
-re-pickup, rejecting distant surfaces, and falling after removal of the welded
-wall. Rider checks include standing on loose and welded cubes and jumping off.
+blocking E until highlighted weld release, rejecting distant surfaces, and falling
+after removal of the welded wall. Rider checks include standing on loose and welded cubes and jumping off.
 Audio checks verify the imported clips and prefab references, and that jump/landing
 feedback fires once instead of repeating while the player rests on the ground.
 Run them from **Window > General > Test Runner > PlayMode**.

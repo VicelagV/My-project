@@ -24,6 +24,7 @@ namespace AllAboard.Movement
         public bool DropReleased => drop.WasReleasedThisFrame();
         public bool CrouchHeld => crouch.IsPressed();
         public bool WeldPressed => weld.WasPressedThisFrame();
+        public string WeldKeyLabel => Keyboard.current != null ? Keyboard.current.yKey.displayName : "Z";
         public bool HasControl => Application.isFocused && Cursor.lockState == CursorLockMode.Locked;
 
         private void Awake()

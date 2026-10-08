@@ -12,7 +12,7 @@ namespace AllAboard.Train
         {
             float weight = extraTestWeight;
             foreach (TrainCar car in train.Consist) weight += car.BaseWeight;
-            foreach (FirstPersonMotor player in Object.FindObjectsByType<FirstPersonMotor>(FindObjectsSortMode.None))
+            foreach (FirstPersonMotor player in Object.FindObjectsByType<FirstPersonMotor>(FindObjectsInactive.Exclude))
             {
                 bool aboard = player.SupportBody != null && train.Contains(player.SupportBody.GetComponent<TrainCar>());
                 if (!aboard) foreach (TrainCar car in train.Consist)
@@ -22,7 +22,7 @@ namespace AllAboard.Train
                 }
                 if (aboard) weight += playerWeight;
             }
-            foreach (PickupObject item in Object.FindObjectsByType<PickupObject>(FindObjectsSortMode.None))
+            foreach (PickupObject item in Object.FindObjectsByType<PickupObject>(FindObjectsInactive.Exclude))
                 if (item.IsWelded && item.WeldedBody != null && train.Contains(item.WeldedBody.GetComponent<TrainCar>())) weight += item.Body.mass;
             return Mathf.Max(1f, weight);
         }

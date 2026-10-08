@@ -17,20 +17,22 @@ namespace AllAboard.Train
         }
         private readonly Dictionary<string,Batch> batches=new Dictionary<string,Batch>();
         private readonly List<Mesh> owned=new List<Mesh>();
+        private readonly List<Material> paints=new List<Material>();
         private readonly Dictionary<Vector2Int,List<Vector3[]>> corridors=new Dictionary<Vector2Int,List<Vector3[]>>();
         private readonly HashSet<Vector3Int> sleeperPositions=new HashSet<Vector3Int>();
         private readonly HashSet<string> trackSegments=new HashSet<string>();
         private RouteNetwork graph;
+        public IReadOnlyList<LandmarkPlan> Landmarks {get;private set;}
         public int MeshCount=>owned.Count;
         public void Build(RouteNetwork network,Material earth,Material ballast,Material wood,Material rail,Material leaves)
         {
-            graph=network;
+            graph=network;Landmarks=LandmarkArt.Plan(graph,transform);
             var samples=new List<Vector3>();
             foreach(var edge in graph.edges)
             {
                 var temp=new GameObject("Curve Sampling");temp.transform.SetParent(transform,false);
                 var path=temp.AddComponent<RailPath>();path.Configure(edge.points);
-                Track(path,ballast,wood,rail);
+                Track(path,ballast,wood,rail,edge);
                 Vector3 previous=edge.points[0];
                 for(float d=10f;d<path.Length;d+=10f)
                 {path.Sample(d,out Vector3 p,out _);AddCorridor(previous,p);previous=p;samples.Add(p);}
@@ -66,7 +68,7 @@ namespace AllAboard.Train
             var path=temp.AddComponent<RailPath>();path.Configure(new[]{a,b});Track(path,ballast,wood,rail);Dispose(temp);
         }
         private static Vector3Int TrackKey(Vector3 p)=>new Vector3Int(Mathf.RoundToInt(p.x*100f),Mathf.RoundToInt(p.y*100f),Mathf.RoundToInt(p.z*100f));
-        private void Track(RailPath path,Material ballast,Material wood,Material rail)
+        private void Track(RailPath path,Material ballast,Material wood,Material rail,RouteEdge edge=null)
         {
             for(float d=0f;d<path.Length;d+=0.8f)
             {
@@ -81,6 +83,7 @@ namespace AllAboard.Train
                 string key=TrackKey(a)+"/"+TrackKey(b);if(!trackSegments.Add(key))continue;
                 // A sloping gravel shoulder and three-part rail section replace flat strips.
                 Strip(a,b,qa,qb,0f,5.0f,0.035f,-0.0115f,ballast,6.0f,d==0f,d+2f>=path.Length);
+                if(edge!=null&&RailDamagePlan.HasDamage(edge)&&d>=RailDamagePlan.Start(edge,path.Length)&&d<RailDamagePlan.Start(edge,path.Length)+RailDamagePlan.Length)continue;
                 foreach(float side in new[]{-1.98f,1.98f})
                 {
                     Strip(a,b,qa,qb,side,0.22f,0.018f,0.035f,rail,capStart:d==0f,capEnd:d+2f>=path.Length);
@@ -118,13 +121,23 @@ namespace AllAboard.Train
         public float GroundHeight(Vector3 p)
         {
             float clearance=DistanceToTrack(new Vector3(p.x,0f,p.z));
-            foreach(var node in graph.nodes)if(IsStop(node.place)&&Mathf.Abs(p.x-node.position.x)<35f&&Mathf.Abs(p.z-node.position.z)<65f)return 0f;
-            float noise=Mathf.PerlinNoise(p.x*0.006f+graph.seed%997,p.z*0.006f+graph.seed%991);
-            return Mathf.SmoothStep(0f,1f,Mathf.InverseLerp(48f,120f,clearance))*(3f+noise*25f);
+            float pad=1f;
+            foreach(var node in graph.nodes)if(IsStop(node.place))pad=Mathf.Min(pad,Mathf.SmoothStep(0f,1f,Mathf.InverseLerp(140f,230f,Vector3.Distance(p,node.position))));
+            float capitalDistance=Vector3.Distance(p,graph.Node("Terminum").position);
+            pad=Mathf.Min(pad,Mathf.SmoothStep(0f,1f,Mathf.InverseLerp(600f,750f,capitalDistance)));
+            if(Landmarks!=null)foreach(var landmark in Landmarks)
+                if(landmark.kind==LandmarkKind.RiverBridge||landmark.kind==LandmarkKind.Canyon)
+                {
+                    Vector3 local=Quaternion.Inverse(landmark.rotation)*(p-landmark.position);
+                    if(Mathf.Abs(local.z)<30f&&Mathf.Abs(local.x)<95f)return -(landmark.kind==LandmarkKind.Canyon?8f:3f)*Mathf.SmoothStep(0f,1f,Mathf.InverseLerp(30f,20f,Mathf.Abs(local.z)))*Mathf.SmoothStep(0f,1f,Mathf.InverseLerp(95f,80f,Mathf.Abs(local.x)));
+                }
+            return pad*Mathf.SmoothStep(0f,1f,Mathf.InverseLerp(48f,120f,clearance))*WorldRegions.Height(graph,p);
         }
-        public static bool IsStop(RoutePlace place)=>place==RoutePlace.Redfort||place==RoutePlace.SupplyStop||place==RoutePlace.Station||place==RoutePlace.Town||place==RoutePlace.Bluefort||place==RoutePlace.Terminum;
+        public static bool IsStop(RoutePlace place)=>place==RoutePlace.Redfort||place==RoutePlace.SupplyStop||place==RoutePlace.Station||place==RoutePlace.Town||place==RoutePlace.Village||place==RoutePlace.Bluefort||place==RoutePlace.Terminum;
         private void Terrain(Material material)
         {
+            var regions=new Dictionary<LandscapeRegion,Material>();
+            foreach(LandscapeRegion region in Enum.GetValues(typeof(LandscapeRegion))){var paint=new Material(material){name="Ground "+region};paint.SetColor("_BaseColor",WorldRegions.GroundColour(region));regions.Add(region,paint);paints.Add(paint);}
             Vector3 min=graph.nodes[0].position,max=min;
             foreach(var edge in graph.edges)foreach(var p in edge.points){min=Vector3.Min(min,p);max=Vector3.Max(max,p);}
             min-=new Vector3(180f,0f,180f);max+=new Vector3(180f,0f,340f);
@@ -133,18 +146,24 @@ namespace AllAboard.Train
             {
                 Vector3 a=new Vector3(x,0,z),b=new Vector3(x,0,z+32f),c=new Vector3(x+32f,0,z+32f),d=new Vector3(x+32f,0,z);
                 a.y=GroundHeight(a);b.y=GroundHeight(b);c.y=GroundHeight(c);d.y=GroundHeight(d);
-                var batch=GetBatch((a+c)*0.5f,material,"Terrain");Triangle(batch,a,b,c);Triangle(batch,a,c,d);
+                var batch=GetBatch((a+c)*0.5f,regions[WorldRegions.At(graph,(a+c)*0.5f)],"Terrain");Triangle(batch,a,b,c);Triangle(batch,a,c,d);
             }
         }
         private void Trees(List<Vector3> samples,Material trunk,Material leaves)
         {
             var random=new System.Random(unchecked(graph.seed*7919+17));
-            for(int i=0;i<samples.Count;i+=6)
+            for(int i=0;i<samples.Count;i+=2)
             {
                 Vector3 p=samples[i]+new Vector3((float)(random.NextDouble()-0.5)*180f,0f,(float)(random.NextDouble()-0.5)*40f);
+                if(Vector3.Distance(p,graph.Node("Terminum").position)<650f)continue;
                 if(DistanceToTrack(p)<17f)continue;
-                bool nearStop=false;foreach(var node in graph.nodes)if(IsStop(node.place)&&Vector3.Distance(p,node.position)<48f){nearStop=true;break;}if(nearStop)continue;
+                bool nearStop=false;foreach(var node in graph.nodes)if(IsStop(node.place)&&Vector3.Distance(p,node.position)<145f){nearStop=true;break;}if(nearStop)continue;
+                bool nearLandmark=false;foreach(var landmark in Landmarks)if(Vector3.Distance(p,landmark.position)<55f){nearLandmark=true;break;}if(nearLandmark)continue;
                 p.y=GroundHeight(p);float height=4f+(float)random.NextDouble()*4f;
+                var region=WorldRegions.At(graph,p);
+                if(region==LandscapeRegion.Desert)
+                {if(random.NextDouble()<0.45){Box(p+Vector3.up*1.4f,new Vector3(.4f,2.8f,.4f),Quaternion.identity,leaves);Box(p+new Vector3(.55f,1.7f,0f),new Vector3(1.1f,.3f,.3f),Quaternion.identity,leaves);Box(p+new Vector3(.9f,2f,0f),new Vector3(.3f,.9f,.3f),Quaternion.identity,leaves);}continue;}
+                if(region!=LandscapeRegion.Forest&&random.NextDouble()<0.72)continue;
                 Box(p+Vector3.up*height*0.25f,new Vector3(0.45f,height*0.5f,0.45f),Quaternion.identity,trunk);
                 Cone(p+Vector3.up*height*0.23f,height*0.65f,height*0.29f,leaves);
                 Cone(p+Vector3.up*height*0.50f,height*0.50f,height*0.22f,leaves);
@@ -183,6 +202,6 @@ namespace AllAboard.Train
             for(int i=0;i<3;i++){batch.triangles.Add(first+i);batch.normals.Add(normal);}
         }
         private static void Dispose(UnityEngine.Object obj){if(Application.isPlaying)Destroy(obj);else DestroyImmediate(obj);}
-        private void OnDestroy(){foreach(var collider in GetComponentsInChildren<MeshCollider>())collider.sharedMesh=null;foreach(var filter in GetComponentsInChildren<MeshFilter>())filter.sharedMesh=null;foreach(var mesh in owned)if(mesh!=null)Dispose(mesh);}
+        private void OnDestroy(){foreach(var collider in GetComponentsInChildren<MeshCollider>())collider.sharedMesh=null;foreach(var filter in GetComponentsInChildren<MeshFilter>())filter.sharedMesh=null;foreach(var mesh in owned)if(mesh!=null)Dispose(mesh);foreach(var paint in paints)if(paint!=null)Dispose(paint);}
     }
 }

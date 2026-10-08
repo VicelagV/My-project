@@ -6,7 +6,8 @@ using UnityEngine;
 namespace AllAboard.Train
 {
     public enum RouteFamily { Shared, Safe, Mixed, Hard }
-    public enum RoutePlace { Junction, Redfort, ForestRepair, SupplyStop, Station, Town, Bluefort, Gate, Terminum, Return }
+    public enum RoutePlace { Junction, Redfort, ForestRepair, SupplyStop, Station, Town, Bluefort, Gate, Terminum, Return, Village }
+    public enum SettlementKind { Frontier, Mining, Lumber, IsolatedStation, Abandoned }
 
     [Serializable]
     public sealed class RouteNode
@@ -16,6 +17,9 @@ namespace AllAboard.Train
         public Vector3 position;
         public RoutePlace place;
         public RouteFamily family;
+        public SettlementKind settlement;
+        public int shops;
+        public int fareMultiplier=1;
     }
 
     [Serializable]
@@ -55,13 +59,21 @@ namespace AllAboard.Train
             foreach (RouteFamily family in families)
             {
                 float lane = ((int)family - 2) * 165f;
+                int count=family==RouteFamily.Safe?1:family==RouteFamily.Hard?3:random.Next(1,4);
+                var stopStages=Enumerable.Range(0,3).OrderBy(_=>random.Next()).Take(count).ToArray();
                 for (int stage = 0; stage < 3; stage++)
                 {
-                    RoutePlace place = family == RouteFamily.Safe ? (stage == 0 ? RoutePlace.Town : stage == 1 ? RoutePlace.Station : RoutePlace.Junction)
-                        : random.NextDouble() < 0.55 ? RoutePlace.Station : RoutePlace.Junction;
+                    RoutePlace place = !stopStages.Contains(stage)?RoutePlace.Junction:family==RouteFamily.Safe?RoutePlace.Town:
+                        (RoutePlace)new[]{(int)RoutePlace.Town,(int)RoutePlace.Village,(int)RoutePlace.Station}[random.Next(3)];
                     string id = family + stage.ToString();
-                    graph.AddNode(id, place == RoutePlace.Town ? "BRASSWOOD" : place == RoutePlace.Station ? family.ToString().ToUpperInvariant() + " HALT " + (stage+1) : family.ToString().ToUpperInvariant() + " JUNCTION " + (stage+1),
+                    string title=place==RoutePlace.Junction?family.ToString().ToUpperInvariant()+" JUNCTION "+(stage+1):
+                        new[]{"CEDAR","DUST","COPPER","SILVER","WILLOW","CANYON","PINE","DRY"}[random.Next(8)]+new[]{" CREEK"," RIDGE"," CROSSING"," FORD"," VALLEY"," SPRINGS"}[random.Next(6)]+" "+(stage+1);
+                    if(graph.nodes.Any(x=>x.title==title))title += " " + family.ToString().ToUpperInvariant();
+                    graph.AddNode(id,title,
                         lane + (stage == 0 ? 0f : (float)(random.NextDouble()-0.5)*55f), 1100f + stage*510f, place, family, scale);
+                    var node=graph.Node(id);node.settlement=place==RoutePlace.Station?SettlementKind.IsolatedStation:family==RouteFamily.Safe?SettlementKind.Frontier:(SettlementKind)new[]{0,1,2,4}[random.Next(4)];
+                    node.shops=place==RoutePlace.Town?2+(random.NextDouble()<1d/3?1:0)+(random.NextDouble()<1d/3?1:0):place==RoutePlace.Village?1+(random.NextDouble()<0.5?1:0):0;
+                    node.fareMultiplier=place==RoutePlace.Station?5:1;
                     if(stage == 0) graph.AddEdge("To"+id,"Supply",id,family.ToString().ToUpperInvariant(),family,0f,scale,random);
                     else graph.AddEdge("Along"+id,family+(stage-1).ToString(),id,"CONTINUE "+family.ToString().ToUpperInvariant(),family,0f,scale,random);
                 }

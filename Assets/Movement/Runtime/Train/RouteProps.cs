@@ -5,17 +5,26 @@ namespace AllAboard.Train
 {
     public static class RouteProps
     {
-        private static GameObject Box(Transform parent,string name,Vector3 position,Vector3 size,Material material,bool solid=true)
+        public static GameObject Box(Transform parent,string name,Vector3 position,Vector3 size,Material material,bool solid=true)
         {
             var obj=GameObject.CreatePrimitive(PrimitiveType.Cube);obj.name=name;obj.transform.SetParent(parent,false);obj.transform.localPosition=position;obj.transform.localScale=size;obj.GetComponent<Renderer>().sharedMaterial=material;
             if(!solid){obj.GetComponent<Collider>().enabled=false;if(Application.isPlaying)Object.Destroy(obj.GetComponent<Collider>());else Object.DestroyImmediate(obj.GetComponent<Collider>());}return obj;
         }
-        private static TextMesh Board(Transform parent,string text,Vector3 p,Vector3 size,Material[] palette,Quaternion rotation)
+        public static TextMesh Board(Transform parent,string text,Vector3 p,Vector3 size,Material[] palette,Quaternion rotation)
         {
             var root=new GameObject(text+" Sign").transform;root.SetParent(parent,false);root.localPosition=p;root.localRotation=rotation;
-            Box(root,"Brass Sign Edge",Vector3.zero,size,palette[6],false);Box(root,"Enamel Sign Face",Vector3.back*0.018f,size-new Vector3(0.07f,0.07f,0f),palette[5],false);
+            Box(root,"Brass Sign Edge",Vector3.zero,size,palette[6],false);
+            Box(root,"Ivory Inner Border",Vector3.back*.018f,size-new Vector3(.04f,.04f,0f),palette[8],false);
+            Box(root,"Enamel Sign Face",Vector3.back*.034f,size-new Vector3(.075f,.075f,0f),palette[5],false);
+            foreach(float side in new[]{-1f,1f})
+            {
+                Box(root,"Sign Decorative Wing",new Vector3(side*(size.x*.5f+.045f),0f,.015f),new Vector3(.11f,size.y*.48f,.055f),palette[6],false);
+                foreach(float y in new[]{-1f,1f})Box(root,"Sign Corner Stud",new Vector3(side*(size.x*.5f-.035f),y*(size.y*.5f-.035f),-.08f),Vector3.one*.025f,palette[6],false);
+            }
             var letters=new GameObject("Mounted Lettering").AddComponent<TextMesh>();letters.transform.SetParent(root,false);letters.transform.localPosition=Vector3.back*(size.z*0.5f+0.03f);
-            letters.text=text;letters.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");letters.fontStyle=FontStyle.Bold;letters.fontSize=64;letters.characterSize=0.012f;letters.anchor=TextAnchor.MiddleCenter;letters.alignment=TextAlignment.Center;letters.color=new Color(0.94f,0.89f,0.72f);letters.GetComponent<Renderer>().sharedMaterial=letters.font.material;return letters;
+            letters.transform.localPosition=Vector3.back*(size.z*.5f+.065f);
+            letters.text=text;letters.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");letters.fontStyle=FontStyle.Bold;letters.fontSize=64;letters.characterSize=.025f;letters.anchor=TextAnchor.MiddleCenter;letters.alignment=TextAlignment.Center;letters.color=new Color(.94f,.89f,.72f);letters.GetComponent<Renderer>().sharedMaterial=letters.font.material;
+            letters.gameObject.AddComponent<PlaqueLettering>().Configure(size.x,size.y);letters.gameObject.AddComponent<WorldTextDepth>();return letters;
         }
         public static void Station(Transform parent,RouteNode node,Material[] palette,TrainController train,GameObject coal)
         {
@@ -34,15 +43,22 @@ namespace AllAboard.Train
             Box(station,"Station Roof",new Vector3(14f,4.4f,-2f),new Vector3(10.6f,0.22f,14.6f),palette[7]);
             foreach(float z in new[]{-17f,13f})
             {
-                Box(station,"Station Sign Post",new Vector3(4.8f,2.1f,z),new Vector3(0.14f,1.9f,0.14f),palette[6]);
-                Board(station,node.title,new Vector3(4.8f,3.1f,z),new Vector3(3.3f,0.5f,0.07f),palette,Quaternion.identity);
+                foreach(float x in new[]{3.1f,6.5f})
+                {
+                    Box(station,"Station Sign Post",new Vector3(x,2.55f,z),new Vector3(.12f,2.8f,.12f),palette[5]);
+                    Box(station,"Sign Post Brass Foot",new Vector3(x,1.35f,z),new Vector3(.23f,.35f,.23f),palette[6],false);
+                    Box(station,"Sign Post Finial",new Vector3(x,4f,z),new Vector3(.20f,.18f,.20f),palette[6],false);
+                }
+                Box(station,"Station Sign Crossbar",new Vector3(4.8f,3.77f,z),new Vector3(3.65f,.10f,.12f),palette[6],false);
+                Board(station,node.title,new Vector3(4.8f,3.28f,z),new Vector3(3.3f,.75f,.09f),palette,Quaternion.identity);
+                Board(station,"BORDER RAILWAY",new Vector3(4.8f,2.71f,z),new Vector3(2.35f,.28f,.06f),palette,Quaternion.identity);
             }
             foreach(float z in new[]{-21f,18f})
             {
                 Box(station,"Platform Bench",new Vector3(6f,1.63f,z),new Vector3(1.1f,0.15f,3f),palette[2]);
                 foreach(float dz in new[]{-1f,1f})Box(station,"Bench Leg",new Vector3(6f,1.37f,z+dz),new Vector3(0.12f,0.44f,0.12f),palette[3]);
             }
-            if(node.place==RoutePlace.SupplyStop||node.place==RoutePlace.Redfort||node.place==RoutePlace.Station||node.place==RoutePlace.Town)
+            if(node.place==RoutePlace.SupplyStop)
             {
                 var crate=Box(station,"Coal Supply",new Vector3(5.9f,1.65f,-8f),new Vector3(0.9f,1f,1.1f),palette[2]);
                 var supply=crate.AddComponent<StationCoalSupply>();supply.Configure(train.Resources,coal);
@@ -50,12 +66,7 @@ namespace AllAboard.Train
                 Board(crate.transform,"COAL",new Vector3(0f,0f,-0.51f),new Vector3(0.66f,0.22f,0.04f),palette,Quaternion.identity);
                 crate.AddComponent<ControlHighlight>().Configure(palette[9],crate.GetComponentsInChildren<Renderer>().Where(x=>x.GetComponent<MeshFilter>()!=null).ToArray());
             }
-            if(node.place==RoutePlace.Town)
-                foreach(float z in new[]{-23f,22f})
-                {
-                    Box(station,"Town House",new Vector3(23f,2f,z),new Vector3(7f,4f,8f),palette[5]);
-                    Box(station,"Town House Roof",new Vector3(23f,4.1f,z),new Vector3(7.5f,0.22f,8.5f),palette[7]);
-                }
+            SettlementArt.Dress(station,node,palette,train,coal);
         }
         public static void RepairMarker(Transform parent,RouteNode node,Material[] palette)
         {

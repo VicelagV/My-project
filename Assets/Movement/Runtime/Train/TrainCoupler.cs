@@ -20,7 +20,7 @@ namespace AllAboard.Train
             if (car == null || car.Owner == null) return false;
             if (GetComponent<TrainButton>() != null && GetComponent<TrainButton>().IsPressed) return false;
             if (Connected) return Feedback(actor, car.Owner.Disconnect(car, front));
-            foreach (TrainCoupler other in Object.FindObjectsByType<TrainCoupler>(FindObjectsSortMode.None))
+            foreach (TrainCoupler other in Object.FindObjectsByType<TrainCoupler>(FindObjectsInactive.Exclude))
                 if (other != this && !other.Connected && car.Owner.Couple(this, other)) return Feedback(actor, true);
             return false;
         }

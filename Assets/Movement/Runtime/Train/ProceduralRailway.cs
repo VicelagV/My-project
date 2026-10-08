@@ -17,6 +17,11 @@ namespace AllAboard.Train
         private readonly Dictionary<string,int> choices=new Dictionary<string,int>();
         private Dictionary<string,int> nodeIndices;
         private Transform generated;
+        private RailDamageSection[] damage;
+        private readonly Dictionary<string,float> damageDistances=new Dictionary<string,float>();
+        private readonly HashSet<string> passedDamage=new HashSet<string>();
+        private System.Random derailRandom;
+        public string DayEndReason {get;private set;}
         public RouteNetwork Network {get;private set;}
         public RailPath Path=>railPath;
         public TrainController Train=>train;
@@ -28,7 +33,7 @@ namespace AllAboard.Train
         {
             float end=NodeDistance("Return");
             if(end<0f||train.HeadDistance<end||DayEnded)return;
-            DayEnded=true;train.StopJourney();
+            DayEnded=true;DayEndReason="Day complete";train.StopJourney();
         }
         private void FixedUpdate(){CheckDayEnd();}
         public void Configure(TrainController owner,RailPath path,GameObject coal,Material[] materials,int baseSeed=8008,float minutes=15f)
@@ -38,14 +43,21 @@ namespace AllAboard.Train
         {
             if(Application.isPlaying&&train.HeadDistance>80.1f)throw new System.InvalidOperationException("Generate a new world before departure, not while travelling.");
             var old=transform.Find("Generated Route World");if(old!=null){old.gameObject.SetActive(false);if(Application.isPlaying)Destroy(old.gameObject);else DestroyImmediate(old.gameObject);}
-            DayEnded=false;choices.Clear();Network=RouteNetwork.Generate(8008,1f);
+            DayEnded=false;DayEndReason=null;damageDistances.Clear();passedDamage.Clear();derailRandom=new System.Random(DailySeed^193);
+            choices.Clear();Network=RouteNetwork.Generate(8008,1f);
             var measurement=new GameObject("Route Length Measurement");measurement.transform.SetParent(transform,false);var probe=measurement.AddComponent<RailPath>();probe.Configure(PlanPoints(out _));
             float baseLength=probe.Length-240f;if(Application.isPlaying)Destroy(measurement);else DestroyImmediate(measurement);
             Network=RouteNetwork.Generate(DailySeed,driveMinutes*60f*12f/baseLength);
             railPath.Configure(PlanPoints(out nodeIndices));train.Configure(railPath,train.Cars.ToArray(),80f);
+            var inventory=train.GetComponent<RailwayInventory>();if(inventory==null)inventory=train.gameObject.AddComponent<RailwayInventory>();inventory.BeginDay();
             generated=new GameObject("Generated Route World").transform;generated.SetParent(transform,false);
             if(!Application.isPlaying)generated.gameObject.hideFlags=HideFlags.DontSaveInEditor;
             Geometry=generated.gameObject.AddComponent<RouteGeometry>();Geometry.Build(Network,palette[0],palette[1],palette[2],palette[3],palette[4]);
+            RailwayStartingGear.Install(train,palette);
+            foreach(var edge in Network.edges.Where(RailDamagePlan.HasDamage))
+            {var site=new GameObject("Rail Damage - "+edge.id);site.transform.SetParent(generated,false);site.AddComponent<RailDamageSection>().Configure(edge,palette);}
+            damage=generated.GetComponentsInChildren<RailDamageSection>();train.RailSafetyCheck=CheckRailSafety;
+            foreach(var landmark in Geometry.Landmarks)LandmarkArt.Build(generated,landmark,Geometry,palette);
             foreach(var node in Network.nodes)
             {
                 if(node.place==RoutePlace.ForestRepair)RouteProps.RepairMarker(generated,node,palette);
@@ -81,8 +93,37 @@ namespace AllAboard.Train
         public bool Choose(string node,int option)
         {
             var exits=Network.Outgoing(node).ToArray();if(DayEnded||option<0||option>=exits.Length||!CanChange(node))return false;
-            choices[node]=option;railPath.Configure(PlanPoints(out nodeIndices));return true;
+            choices[node]=option;railPath.Configure(PlanPoints(out nodeIndices));damageDistances.Clear();return true;
         }
+        private void CheckRailSafety(float previous,float next)
+        {
+            if(damage==null||DayEnded)return;
+            foreach(var section in damage)
+            {
+                var edge=Network.Edge(section.EdgeId);
+                float start=NodeDistance(edge.from);if(start<0f||Network.Outgoing(edge.from).ElementAt(SelectedIndex(edge.from)).id!=edge.id)continue;
+                if(!damageDistances.TryGetValue(edge.id,out float at))
+                {
+                    float guess=start+section.Start,best=float.PositiveInfinity;at=guess;
+                    for(float d=guess-20f;d<=guess+20f;d+=.25f){railPath.Sample(d,out var p,out _);float error=(p-section.StartPosition).sqrMagnitude;if(error<best){best=error;at=d;}}
+                    damageDistances[edge.id]=at;
+                }
+                int index=0;
+                foreach(var car in train.Consist)
+                {
+                    float offset=9.5f*index++-(car.Kind==CarKind.Locomotive?7f:3.8f);
+                    float a=previous-offset,b=next-offset;
+                    if(Mathf.Max(a,b)<at||Mathf.Min(a,b)>at+RailDamagePlan.Length)continue;
+                    string token=edge.id+"/"+car.GetEntityId()+"/"+(next>=previous?"F":"R");
+                    // Slow entry is safe, but accelerating on damaged rails still checks the risk.
+                    if(section.IsRepaired||(!section.IsMissing&&Mathf.Abs(train.Speed)<=3f))continue;
+                    if(!passedDamage.Add(token))continue;
+                    if(section.IsMissing||derailRandom.NextDouble()<RailDamagePlan.DerailChance(train.Speed))
+                    {DayEnded=true;DayEndReason=section.IsMissing?"Derailed: missing rails":"Derailed: exceeded 3 m/s on damaged rails";train.Derail();return;}
+                }
+            }
+        }
+        private void OnGUI(){if(DayEnded)GUI.Label(new Rect(25f,25f,600f,45f),DayEndReason+" — restart Play mode to begin again");}
         // Catmull-Rom's first differing point affects the segment two points earlier.
         private int SharedApproach(string node)
         {

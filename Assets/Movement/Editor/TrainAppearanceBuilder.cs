@@ -156,7 +156,7 @@ namespace AllAboard.Editor
                 Part(details, "Roof Walking Strip", new Vector3(-0.15f, 4.085f, 0f), new Vector3(1.1f, 0.03f, 8.8f), steel);
                 foreach (float x in new[] { -1.9f, 1.9f }) Part(details, "Roof Brass Eave", new Vector3(x, 3.84f, 0f), new Vector3(0.06f, 0.06f, 9f), brass);
                 for (float x = -1.7f; x < 1.8f; x += 0.24f) Part(details, "Floor Plank Seam", new Vector3(x, 1.153f, 0f), new Vector3(0.012f, 0.004f, 8.8f), navy);
-                var door = car.GetComponentInChildren<TrainDoor>(); if (door != null) door.ConfigureTravel(new Vector3(0.18f, 0f, -2.1f));
+                var door = car.GetComponentInChildren<TrainDoor>(); if (door != null) door.ConfigureHinge(new Vector3(0f, 0f, -1f), 100f);
                 var panel = body.Find("Sliding Door"); if (panel != null)
                 {
                     panel.GetComponent<Renderer>().enabled = false; var doorDetails = Root(panel, "Door Visual Details", true);
@@ -166,6 +166,9 @@ namespace AllAboard.Editor
                     Part(doorDetails, "Door Window", new Vector3(0f, 0.49f, 0f), new Vector3(0.018f, 1.02f, 1.64f), glass);
                     foreach (float side in new[] { -1f, 1f }) Part(doorDetails, "Door Handle", new Vector3(side * 0.13f, 0f, 0.65f), new Vector3(0.05f, 0.30f, 0.05f), brass, cylinder);
                 }
+                foreach(var press in car.GetComponentsInChildren<TrainButton>().Where(x=>x.name.Contains("Door Button")))
+                    DressPushButton(press, details, true);
+                foreach(float y in new[]{1.45f,2.25f,3.05f})Part(details,"Door Hinge Barrel",new Vector3(1.96f,y,.5f),new Vector3(.10f,.22f,.10f),brass,cylinder);
                 if (kind == CarKind.Passenger)
                 {
                     foreach(Transform child in body.Cast<Transform>().Where(x=>x.name.StartsWith("Placeholder Seat")).ToArray())Object.DestroyImmediate(child.gameObject);
@@ -372,10 +375,7 @@ namespace AllAboard.Editor
             {
                 if (control.Kind == ControlKind.Firebox) { control.GetComponent<Renderer>().sharedMaterial = fire; continue; }
                 if (control.Kind == ControlKind.Vent) continue;
-                Colour(control.transform, control.Kind == ControlKind.Reverse ? red : control.Kind == ControlKind.Door ? navy : brass, control.Kind == ControlKind.Reverse ? cylinder : button);
-                Vector3 p = control.transform.localPosition;
-                if (control.Kind == ControlKind.Reverse) Part(details, "Reverse Button Bezel", p + Vector3.down * 0.035f, new Vector3(0.24f, 0.24f, 0.16f), brass, ring, Quaternion.Euler(90f, 0f, 0f));
-                else Part(details, "Button Fixed Bezel", p + Vector3.forward * 0.015f, new Vector3(0.255f, 0.235f, 0.16f), steel, ring);
+                var press=control.GetComponent<TrainButton>();if(press!=null)DressPushButton(press,details,false);
             }
             var valve = car.GetComponentsInChildren<TrainControl>().First(x => x.Kind == ControlKind.Vent).transform; var wheelDetails = Root(valve, "Valve Visual Details"); valve.localPosition=new Vector3(-1.68f,3.5f,2.08f);
             foreach (Transform child in valve) if (child.name == "Valve Rim") child.GetComponent<Renderer>().enabled = false;
@@ -406,11 +406,34 @@ namespace AllAboard.Editor
             glow.type = LightType.Point; glow.color = new Color(1f, 0.35f, 0.06f); glow.intensity = 1.8f; glow.range = 3f;
             foreach (TextMesh label in car.GetComponentsInChildren<TextMesh>()) MountLabel(label);
         }
+        private static void DressPushButton(TrainButton press,Transform details,bool sideFacing)
+        {
+            Transform cap=press.transform;bool upward=cap.GetComponent<TrainControl>()?.Kind==ControlKind.Reverse;
+            Vector3 p=cap.localPosition;Quaternion facing=sideFacing?Quaternion.Euler(0f,cap.localPosition.x>1.9f?-90f:90f,0f):upward?Quaternion.Euler(90f,0f,0f):Quaternion.identity;
+            Colour(cap,red,button);cap.localScale=new Vector3(.16f,.16f,.11f);cap.localRotation=facing;
+            var plate=new GameObject("Button Mount - "+cap.name).transform;plate.SetParent(details,false);plate.localPosition=p;plate.localRotation=facing;
+            Part(plate,"Brass Button Plate",new Vector3(0f,0f,.036f),new Vector3(.29f,.30f,.045f),brass,panelBox);
+            Part(plate,"Dark Enamel Inset",new Vector3(0f,0f,.008f),new Vector3(.24f,.25f,.019f),navy,panelBox);
+            Part(plate,"Machined Button Collar",Vector3.zero,new Vector3(.205f,.205f,.055f),brass,ring);
+            foreach(float x in new[]{-.12f,.12f})foreach(float y in new[]{-.12f,.12f})Part(plate,"Button Screw",new Vector3(x,y,.0f),new Vector3(.02f,.018f,.02f),steel,cylinder,Quaternion.Euler(90f,0f,0f));
+            Vector3 direction=facing*Vector3.forward*.04f;press.Configure(direction);
+            foreach(var label in cap.GetComponentsInChildren<TextMesh>())
+                Object.DestroyImmediate(label.gameObject);
+            string title=cap.GetComponent<TrainControl>()!=null?(cap.GetComponent<TrainControl>().Kind==ControlKind.DamageSpeedometer?"TEST GAUGE":cap.GetComponent<TrainControl>().Kind.ToString().ToUpperInvariant()):"DOOR";
+            var lettering=new GameObject(title+" Label").AddComponent<TextMesh>();lettering.transform.SetParent(details,false);lettering.transform.localRotation=facing;
+            lettering.transform.localPosition=p+facing*new Vector3(0f,.28f,-.025f);lettering.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");lettering.text=title;lettering.anchor=TextAnchor.MiddleCenter;lettering.GetComponent<Renderer>().sharedMaterial=lettering.font.material;
+            if(sideFacing)MountLabel(lettering);
+            EditorUtility.SetDirty(press);
+        }
         private static void MountLabel(TextMesh label)
         {
+            string file="Assets/Movement/Materials/WorldLettering.mat";var textPaint=AssetDatabase.LoadAssetAtPath<Material>(file);
+            if(textPaint==null){textPaint=new Material(Shader.Find("AllAboard/World Lettering")){name="World Lettering"};AssetDatabase.CreateAsset(textPaint,file);}
+            label.GetComponent<Renderer>().sharedMaterial=textPaint;
+            if(label.GetComponent<WorldTextDepth>()==null)label.gameObject.AddComponent<WorldTextDepth>();
+            label.GetComponent<WorldTextDepth>().Refresh();
             label.color=new Color(0.94f,0.89f,0.72f); label.fontStyle=FontStyle.Bold; label.fontSize=64;
             if(label.text=="0" || label.text=="100" || label.text=="15") return;
-            if(label.name=="REVERSE Label") label.transform.localPosition=new Vector3(0f,0.65f,-0.85f);
             label.transform.localScale=Vector3.one;
             Vector3 scale=new Vector3(label.transform.TransformVector(Vector3.right).magnitude,label.transform.TransformVector(Vector3.up).magnitude,label.transform.TransformVector(Vector3.forward).magnitude);
             label.transform.localScale=new Vector3(1f/scale.x,1f/scale.y,1f/scale.z);

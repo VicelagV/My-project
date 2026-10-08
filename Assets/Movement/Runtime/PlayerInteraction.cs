@@ -24,8 +24,14 @@ namespace AllAboard.Movement
         private PickupObject held;
         private PrototypeInteractable hoveredControl;
         private AllAboard.Train.TrainLever grabbedLever;
+        private AllAboard.Train.RailSawControl grabbedSaw;
         [SerializeField] private bool showInteractionPrompts = true;
-        public bool IsUsingHandControl => grabbedLever != null;
+        public bool IsUsingHandControl => grabbedLever != null || grabbedSaw != null;
+        public bool TryGrabSaw(AllAboard.Train.RailSawControl saw)
+        {
+            if(IsHolding||IsUsingHandControl||saw==null||!saw.Mounted||saw.Finished)return false;
+            grabbedSaw=saw;view.SetHandControlTarget(saw.transform);return true;
+        }
         public bool IsPressingHoveredLever => input.GrabPressed && hoveredControl is AllAboard.Train.TrainLever && !IsHolding && GetComponent<FirstPersonMotor>().IsSeated;
         public void ShowInteractionPrompts(bool show) => showInteractionPrompts = show;
         public bool TryGrabThrottle(AllAboard.Train.TrainLever lever)
@@ -44,6 +50,7 @@ namespace AllAboard.Movement
         {
             if (grabbedLever != null) grabbedLever.EndGrip(this);
             grabbedLever = null;
+            grabbedSaw = null;
             if (view != null) view.SetHandControlTarget(null);
         }
         private Texture2D dot;
@@ -82,6 +89,11 @@ namespace AllAboard.Movement
                 chargeTime = 0f;
                 return;
             }
+            if (grabbedSaw != null)
+            {
+                if(!input.GrabHeld||input.InteractPressed||Vector3.Distance(cameraPivot.position,grabbedSaw.transform.position)>reach||!grabbedSaw.Drag(input.Look.y))ReleaseThrottle();
+                return;
+            }
             if (grabbedLever != null)
             {
                 if (!input.GrabHeld || input.InteractPressed) ReleaseThrottle();
@@ -89,6 +101,9 @@ namespace AllAboard.Movement
                 return;
             }
             RefreshHoveredTarget();
+            if(input.GrabPressed&&hoveredControl is AllAboard.Train.RailSawControl saw&&TryGrabSaw(saw))return;
+            if(input.GrabPressed&&(hoveredControl is AllAboard.Train.RailwayVendor||hoveredControl is AllAboard.Train.TrainControl control&&control.GetComponent<AllAboard.Train.TrainButton>()!=null))
+            {hoveredControl.Interact(this);return;}
             if (input.GrabPressed && TryGrabHoveredLever())
             {
                 DragThrottle(input.Look);
@@ -157,6 +172,7 @@ namespace AllAboard.Movement
                 Vector3.Distance(cameraPivot.position, item.transform.position) > reach || !item.BeginHold(playerCollider))
                 return false;
             held = item;
+            if(item.GetComponent<AllAboard.Train.StoredRailTool>()!=null){item.transform.SetParent(null,true);Destroy(item.GetComponent<AllAboard.Train.StoredRailTool>());}
             charging = false;
             chargeTime = 0f;
             SetHovered(null);
@@ -338,6 +354,12 @@ namespace AllAboard.Movement
 
         private void OnGUI()
         {
+            if(grabbedSaw!=null&&input.HasControl)
+            {
+                GUI.Label(new Rect(Screen.width*.5f-95f,Screen.height*.5f+35f,250f,25f),"SAW: forward / backward");
+                GUI.Box(new Rect(Screen.width*.5f-90f,Screen.height*.5f+60f,180f,12f),"");
+                GUI.Box(new Rect(Screen.width*.5f-90f,Screen.height*.5f+60f,180f*grabbedSaw.Progress,12f),"");
+            }
             if (held == null && !IsUsingHandControl && dot != null && input.HasControl)
                 GUI.DrawTexture(new Rect((Screen.width - 7f) * 0.5f, (Screen.height - 7f) * 0.5f, 7f, 7f), dot);
             if (showInteractionPrompts && input.HasControl && hoveredControl != null)

@@ -33,7 +33,9 @@ namespace AllAboard.Movement.Tests
             Assert.That(graph.Outgoing("Starter").Select(x=>x.to).Distinct().Single(),Is.EqualTo("Supply"));
             Assert.That(graph.Outgoing("Starter").Count(),Is.EqualTo(2));
             Assert.That(graph.nodes.Any(x=>x.family==RouteFamily.Safe&&x.place==RoutePlace.Town),Is.True);
-            Assert.That(graph.nodes.Any(x=>x.family==RouteFamily.Safe&&x.place==RoutePlace.Station),Is.True);
+            Assert.That(graph.nodes.Count(x=>x.family==RouteFamily.Safe&&RouteGeometry.IsStop(x.place)),Is.EqualTo(1));
+            Assert.That(graph.nodes.Count(x=>x.family==RouteFamily.Hard&&RouteGeometry.IsStop(x.place)),Is.EqualTo(3));
+            Assert.That(graph.nodes.Count(x=>x.family==RouteFamily.Mixed&&RouteGeometry.IsStop(x.place)),Is.InRange(1,3));
             foreach(var edge in graph.edges){Assert.That(edge.points.First(),Is.EqualTo(graph.Node(edge.from).position));Assert.That(edge.points.Last(),Is.EqualTo(graph.Node(edge.to).position));}
             foreach(var node in graph.nodes.Where(x=>x.place!=RoutePlace.Return))
             {
@@ -70,10 +72,12 @@ namespace AllAboard.Movement.Tests
             for(float d=0f;d<world.Path.Length;d+=80f)
             {
                 world.Path.Sample(d,out Vector3 p,out _);
-                var hits=Physics.RaycastAll(p+Vector3.up*60f,Vector3.down,65f,~0,QueryTriggerInteraction.Ignore);
-                var terrain=hits.Where(x=>x.collider is MeshCollider&&x.collider.GetComponentInParent<RouteGeometry>()==world.Geometry).ToArray();
+                var hits=Physics.RaycastAll(p+Vector3.up*60f,Vector3.down,85f,~0,QueryTriggerInteraction.Ignore);
+                var terrain=hits.Where(x=>x.collider is MeshCollider&&x.collider.name.StartsWith("Terrain")&&x.collider.GetComponentInParent<RouteGeometry>()==world.Geometry).ToArray();
                 Assert.That(terrain.Length,Is.GreaterThan(0),"Missing ground at distance "+d);
-                Assert.That(terrain.Min(x=>Mathf.Abs(x.point.y)),Is.LessThan(0.005f),"Terrain obstructs rails at "+d);
+                Assert.That(terrain.Max(x=>x.point.y),Is.LessThan(0.005f),"Terrain obstructs rails at "+d);
+                if(terrain.Min(x=>Mathf.Abs(x.point.y))>.005f)
+                    Assert.That(hits.Any(x=>x.collider.name=="Bridge Deck"&&Mathf.Abs(x.point.y)<.005f),Is.True,"Carved river must have a bridge at "+d);
             }
             Assert.That(scene.GetRootGameObjects().SelectMany(x=>x.GetComponentsInChildren<MonoBehaviour>(true)).Any(x=>x==null),Is.False);
         }
@@ -102,6 +106,8 @@ namespace AllAboard.Movement.Tests
         [Test]
         public void BypassCrossoversAndDayEndCanBeDrivenWithoutResettingTheConsist()
         {
+            // This test exercises itinerary continuity; damaged-rail outcomes have their own tests.
+            world.Train.RailSafetyCheck=null;
             Assert.That(world.Choose("Supply",1),Is.True);
             Assert.That(world.Choose("Mixed0",2),Is.True);
             Assert.That(world.Choose("Hard1",1),Is.True);

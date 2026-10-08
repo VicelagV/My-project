@@ -16,6 +16,14 @@ namespace AllAboard.Train
         [SerializeField] private float brakingForce = 4.5f;
         [SerializeField] private float referenceWeight = 26f;
         private bool journeyStopped;
+        public System.Action<float,float> RailSafetyCheck;
+        public bool IsDerailed {get;private set;}
+        public void Derail()
+        {
+            IsDerailed=true;StopJourney();
+            foreach(var car in Consist)
+            {car.Body.position+=car.Body.rotation*Vector3.right*.65f;car.Body.rotation*=Quaternion.Euler(0f,0f,9f);}
+        }
         public void StopJourney(){journeyStopped=true;Speed=0f;Throttle=0f;Braking=true;}
         private TrainResources resources;
         private TrainWeight weight;
@@ -44,7 +52,7 @@ namespace AllAboard.Train
         public bool Contains(TrainCar sought) { if (sought == null) return false; foreach (var car in Consist) if (car == sought) return true; return false; }
         public void Configure(RailPath rail, TrainCar[] cars, float startDistance = 80f)
         {
-            journeyStopped=false;path = rail; allCars = cars; headDistance = startDistance;
+            journeyStopped=false;IsDerailed=false;path = rail; allCars = cars; headDistance = startDistance;
             for (int i = 0; i < cars.Length; i++)
             {
                 cars[i].Assign(this, headDistance - spacing * i);
@@ -68,7 +76,9 @@ namespace AllAboard.Train
             else if (Throttle < 0.01f || performance <= 0f) { target = 0f; force = 0.35f; }
             Speed = Mathf.MoveTowards(Speed, target, force * deltaTime);
             float requested = headDistance + Speed * deltaTime;
+            float previousDistance=headDistance;
             headDistance = Mathf.Clamp(requested, (ConnectedCount - 1) * spacing + 5f, path.Length - 9f);
+            RailSafetyCheck?.Invoke(previousDistance,headDistance);if(journeyStopped)return;
             if (Mathf.Abs(headDistance - requested) > 0.0001f) { Speed = 0f; Braking = true; }
             Resources.Step(Throttle, Braking, deltaTime);
             int index = 0;

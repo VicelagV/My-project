@@ -6,6 +6,8 @@ namespace AllAboard.Train
         private static GameObject Box(Transform p,string n,Vector3 at,Vector3 size,Material m,bool solid=false)=>RouteProps.Box(p,n,at,size,m,solid);
         public static void Dress(Transform station,Material[] m)
         {
+            foreach(Transform child in station)
+                if(child.name.StartsWith("Canopy ")||child.name=="Column Base"||child.name=="Platform Canopy")child.gameObject.SetActive(false);
             var assets=station.parent.GetComponent<WorldArtAssets>();
             var stone=assets.Paint(m[8],"Capital Limestone",new Color(.78f,.75f,.65f));
             var brick=assets.Paint(m[2],"Capital Brick",new Color(.52f,.28f,.21f));
@@ -36,7 +38,11 @@ namespace AllAboard.Train
                     Box(building,"Chimney Pots",new Vector3(x,height+3.15f,3f),new Vector3(.95f,.35f,.95f),stone);
                 }
                 foreach(float x in new[]{-16f,-8f,0f,8f,16f})Box(building,"Stone Pilaster",new Vector3(x,height*.5f,-8.21f),new Vector3(.25f,height,.22f),stone);
-                foreach(float sideRoof in new[]{-1f,1f}){var roof=Box(building,"Slate Roof",new Vector3(0f,height+1.2f,sideRoof*4f),new Vector3(33f,.25f,9f),slate);roof.transform.localRotation=Quaternion.Euler(sideRoof*-18f,0f,0f);}
+                BuildingRoof.Build(building,"Slate Roof",Vector3.zero,16f,32f,height+.2f,18f,slate,row%3==0?stone:brick,.45f,true);
+                Box(building,"Slate Ridge Cap",new Vector3(0f,height+.2f+BuildingRoof.Rise(16f,18f)+.02f,0f),new Vector3(33f,.12f,.24f),slate);
+                foreach(float x in new[]{-16.15f,16.15f})Box(building,"Side Roof Cornice",new Vector3(x,height+.12f,0f),new Vector3(.3f,.3f,16.8f),stone);
+                Box(building,"Rear Roof Cornice",new Vector3(0f,height+.12f,8.15f),new Vector3(32.8f,.3f,.3f),stone);
+                foreach(float x in new[]{-15.8f,15.8f})Box(building,"Rain Downpipe",new Vector3(x,height*.5f,-8.4f),new Vector3(.1f,height,.1f),m[5]);
                 var rear=Object.Instantiate(building.gameObject,root).transform;rear.name="Capital Rear Terrace";rear.localPosition=new Vector3(side*(145f+(row%3)*14f),0f,(side<0f?-440f:-515f)+row*57f);rear.localScale=new Vector3(1f,1.2f,1f);
                 WorldArtAssets.BatchBuilding(building);WorldArtAssets.BatchBuilding(rear);
             }
@@ -46,27 +52,28 @@ namespace AllAboard.Train
                 Box(root,"Capital Paved Street",new Vector3(side*23f,.025f,-200f),new Vector3(10f,.05f,450f),slate);
                 Box(root,"Capital Pavement",new Vector3(side*33f,.10f,-200f),new Vector3(10f,.20f,450f),paving,true);
                 Box(root,"Capital Pavement Curb",new Vector3(side*28f,.16f,-200f),new Vector3(.15f,.16f,450f),stone);
-                Box(root,"Capital Promenade",new Vector3(side*52f,.025f,-215f),new Vector3(25f,.05f,540f),paving);
+                Box(root,"Capital Promenade",new Vector3(side*(side<0f?44f:50f),.025f,-215f),new Vector3(side<0f?12f:24f,.05f,540f),paving);
                 Box(root,"Capital Outer Street",new Vector3(side*115f,.025f,-215f),new Vector3(12f,.05f,540f),slate);
                 for(float z=-400f;z<25f;z+=38f)
                 {
-                    Box(root,"Capital Lamp Post",new Vector3(side*29f,2.4f,z),new Vector3(.12f,4.8f,.12f),m[5]);
-                    Box(root,"Capital Lantern",new Vector3(side*29f,4.9f,z),new Vector3(.52f,.65f,.52f),m[5]);
-                    Box(root,"Capital Lantern Glass",new Vector3(side*29f,4.9f,z),new Vector3(.43f,.47f,.43f),m[8]);
-                    Box(root,"Capital Lamp Cap",new Vector3(side*29f,5.3f,z),new Vector3(.64f,.12f,.64f),m[5]);
+                    ModelDetails.Lantern(root,new Vector3(side*29f,.2f,z),m,"Capital",4.6f);
                 }
             }
             Box(root,"Capital Station Square",new Vector3(80f,.025f,45f),new Vector3(100f,.05f,95f),paving);
-            Box(root,"Square Fountain Basin",new Vector3(105f,.35f,45f),new Vector3(4f,.7f,4f),stone,true);
+            Box(root,"Square Fountain Floor",new Vector3(105f,.13f,45f),new Vector3(4f,.2f,4f),stone,true);
+            foreach(float side in new[]{-1f,1f})
+            {Box(root,"Fountain Basin Rim",new Vector3(105f+side*1.85f,.46f,45f),new Vector3(.3f,.65f,4f),stone,true);Box(root,"Fountain Basin Rim",new Vector3(105f,.46f,45f+side*1.85f),new Vector3(3.4f,.65f,.3f),stone,true);}
+            Box(root,"Visible Fountain Water",new Vector3(105f,.48f,45f),new Vector3(3.4f,.03f,3.4f),m[3]);
             Box(root,"Square Fountain Centre",new Vector3(105f,1.3f,45f),new Vector3(.45f,2f,.45f),m[6]);
             foreach(float z in new[]{20f,67f})Box(root,"City Cross Street",new Vector3(45f,.02f,z),new Vector3(140f,.04f,8f),slate);
             var hall=new GameObject("Capital Station Hall").transform;hall.SetParent(root,false);hall.localPosition=new Vector3(25f,0f,-4f);
             Box(hall,"Grand Station Wing",new Vector3(18f,6f,0f),new Vector3(22f,12f,68f),brick,true);
-            foreach(float z in new[]{-31f,-22f,-13f,13f,22f,31f})
+            foreach(float z in new[]{-27f,-18f,-9f,9f,18f,27f})
             {
                 Box(hall,"Station Stone Pier",new Vector3(6.7f,6.2f,z),new Vector3(.7f,12.4f,.6f),stone);
-                Box(hall,"Grand Hall Window",new Vector3(6.8f,7f,z+3f),new Vector3(.12f,6f,4.5f),m[3]);
-                Box(hall,"Hall Window Mullion",new Vector3(6.68f,7f,z+3f),new Vector3(.15f,6.2f,.16f),stone);
+                Box(hall,"Grand Hall Window",new Vector3(6.85f,7f,z+3f),new Vector3(.12f,6f,4.5f),m[3]);
+                foreach(float dz in new[]{0f,2.2f,4.4f})Box(hall,"Hall Window Mullion",new Vector3(6.68f,7f,z+.8f+dz),new Vector3(.15f,6.2f,.16f),stone);
+                foreach(float y in new[]{3.95f,10.05f})Box(hall,"Hall Window Surround",new Vector3(6.65f,y,z+3f),new Vector3(.25f,.18f,4.8f),stone);
             }
             Box(hall,"Station Roofline",new Vector3(17.7f,12.3f,0f),new Vector3(23f,.5f,69f),stone);
             Box(hall,"Station Clock Tower",new Vector3(18f,13f,0f),new Vector3(9f,26f,9f),stone,true);

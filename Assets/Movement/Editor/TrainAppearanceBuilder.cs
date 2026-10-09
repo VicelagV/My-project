@@ -153,7 +153,7 @@ namespace AllAboard.Editor
                 }
                 Mesh roofShape = kind == CarKind.Locomotive ? MeshAsset("TrainCabRoofHatch", RoofMesh(true)) : roof;
                 Part(details, "Rounded Roof", new Vector3(0f, 3.8f, 0f), new Vector3(4.1f, 0.6f, 9f), kind == CarKind.Locomotive ? red : navy, roofShape);
-                Part(details, "Roof Walking Strip", new Vector3(-0.15f, 4.085f, 0f), new Vector3(1.1f, 0.03f, 8.8f), steel);
+                Part(details, "Roof Walking Strip", new Vector3(-0.15f, 4.105f, 0f), new Vector3(1.1f, 0.035f, 8.8f), steel);
                 foreach (float x in new[] { -1.9f, 1.9f }) Part(details, "Roof Brass Eave", new Vector3(x, 3.84f, 0f), new Vector3(0.06f, 0.06f, 9f), brass);
                 for (float x = -1.7f; x < 1.8f; x += 0.24f) Part(details, "Floor Plank Seam", new Vector3(x, 1.153f, 0f), new Vector3(0.012f, 0.004f, 8.8f), navy);
                 var door = car.GetComponentInChildren<TrainDoor>(); if (door != null) door.ConfigureHinge(new Vector3(0f, 0f, -1f), 100f);
@@ -169,6 +169,19 @@ namespace AllAboard.Editor
                 foreach(var press in car.GetComponentsInChildren<TrainButton>().Where(x=>x.name.Contains("Door Button")))
                     DressPushButton(press, details, true);
                 foreach(float y in new[]{1.45f,2.25f,3.05f})Part(details,"Door Hinge Barrel",new Vector3(1.96f,y,.5f),new Vector3(.10f,.22f,.10f),brass,cylinder);
+                Part(details,"Door Boarding Step",new Vector3(2.1f,.88f,1.5f),new Vector3(.44f,.14f,1.15f),steel,panelBox);
+                foreach(float z in new[]{1.05f,1.95f})Part(details,"Boarding Step Bracket",new Vector3(1.97f,.76f,z),new Vector3(.08f,.28f,.08f),steel);
+                if(kind==CarKind.Locomotive)
+                {
+                    foreach(var ladder in car.GetComponentsInChildren<TrainLadder>())
+                    {
+                        bool upper=ladder.transform.localPosition.y>3f;
+                        ladder.transform.localPosition=new Vector3(1.48f,upper?4.25f:2f,-3.45f);
+                        ladder.GetComponent<Renderer>().enabled=false;
+                    }
+                    foreach(float x in new[]{.72f,1.48f})Part(details,"Ladder Upright",new Vector3(x,2.8f,-3.45f),new Vector3(.055f,3.25f,.055f),steel,cylinder);
+                    foreach(float x in new[]{.72f,1.48f})Part(details,"Ladder Handgrip",new Vector3(x,4.32f,-3.30f),new Vector3(.055f,.3f,.055f),brass,cylinder,Quaternion.Euler(90f,0f,0f));
+                }
                 if (kind == CarKind.Passenger)
                 {
                     foreach(Transform child in body.Cast<Transform>().Where(x=>x.name.StartsWith("Placeholder Seat")).ToArray())Object.DestroyImmediate(child.gameObject);
@@ -180,11 +193,12 @@ namespace AllAboard.Editor
                         foreach(var span in side<0f?new[]{new Vector2(0f,8.6f)}:new[]{new Vector2(-1.95f,4.9f),new Vector2(3.45f,1.9f)})
                             Part(details,"Interior Window Rail",new Vector3(side*1.77f,2.18f,span.x),new Vector3(0.045f,0.08f,span.y),wood);
                         Part(details,"Overhead Luggage Shelf",new Vector3(side*1.48f,3.42f,0f),new Vector3(0.68f,0.04f,8.5f),brass);
-                        foreach(float z in new[]{-3f,0f,3f})Part(details,"Luggage Shelf Bracket",new Vector3(side*1.74f,3.29f,z),new Vector3(0.05f,0.25f,0.05f),brass);
+                        foreach(float z in new[]{-3f,0f,3f})Part(details,"Luggage Shelf Bracket",new Vector3(side*1.78f,3.29f,z),new Vector3(0.13f,0.25f,0.05f),brass);
                     }
                     foreach (float z in new[] { -2.5f, 0f, 2.5f })
                     {
                         Part(details, "Cabin Lamp", new Vector3(0f, 3.70f, z), new Vector3(0.22f, 0.10f, 0.22f), ivory, cylinder);
+                        Part(details,"Cabin Lamp Stem",new Vector3(0f,3.77f,z),new Vector3(.045f,.065f,.045f),brass,cylinder);
                         var light = new GameObject("Warm Cabin Light").AddComponent<Light>(); light.transform.SetParent(details, false); light.transform.localPosition = new Vector3(0f, 3.6f, z);
                         light.type = LightType.Point; light.color = new Color(1f, 0.78f, 0.5f); light.intensity = 0.65f; light.range = 3f;
                     }
@@ -196,6 +210,12 @@ namespace AllAboard.Editor
                 Wheel(details, side * 1.98f, z, 0.4f, navy);
                 Part(details, "Axle Box", new Vector3(side * 1.81f, 0.45f, z), new Vector3(0.28f, 0.27f, 0.38f), steel);
                 for (int spring = 0; spring < 3; spring++) Part(details, "Leaf Spring", new Vector3(side * 1.86f, 0.65f + spring * 0.04f, z), new Vector3(0.12f, 0.025f, 0.7f - spring * 0.14f), steel);
+            }
+            foreach(float side in new[]{-1f,1f})
+            {
+                foreach(float z in new[]{-3.8f,-2.5f,-1.2f,.1f,3.8f})
+                    Part(details,"Body Fastener",new Vector3(side*1.984f,kind==CarKind.Coal?1.3f:1.32f,z),new Vector3(.035f,.065f,.065f),brass,button,Quaternion.Euler(0f,90f,0f));
+                foreach(float z in new[]{-2.8f,2.8f})Part(details,"Suspension Mount",new Vector3(side*1.75f,.77f,z),new Vector3(.25f,.15f,.95f),steel,panelBox);
             }
             foreach (TrainCoupler control in car.GetComponentsInChildren<TrainCoupler>())
             {
@@ -269,6 +289,13 @@ namespace AllAboard.Editor
         {
             float sign = control.IsFront ? 1f : -1f;
             Part(parent, "Buffer Beam", new Vector3(0f, 0.84f, sign * endDistance), new Vector3(3.7f, 0.40f, 0.16f), red);
+            Part(parent,"Brake Hose Mount",new Vector3(.68f,.72f,sign*(endDistance+.10f)),new Vector3(.12f,.16f,.14f),brass);
+            for(int segment=0;segment<5;segment++)
+            {
+                float angle=segment*Mathf.PI/5f;
+                Part(parent,"Brake Hose",new Vector3(.68f+Mathf.Sin(angle)*.12f,.67f-segment*.065f,sign*(endDistance+.18f+Mathf.Sin(angle)*.10f)),new Vector3(.065f,.095f,.065f),navy,cylinder,Quaternion.Euler(0f,0f,-Mathf.Cos(angle)*15f));
+            }
+            Part(parent,"Brake Hose Union",new Vector3(.75f,.36f,sign*(endDistance+.23f)),new Vector3(.11f,.08f,.11f),steel,cylinder);
             foreach (float x in new[] { -1.3f, 1.3f })
             {
                 Part(parent, "Buffer Shank", new Vector3(x, 0.88f, sign * (endDistance + 0.13f)), new Vector3(0.17f, 0.36f, 0.17f), steel, cylinder, Quaternion.Euler(90f, 0f, 0f));
@@ -538,18 +565,30 @@ namespace AllAboard.Editor
         }
         private static Mesh RoofMesh(bool hatch)
         {
-            var v = new List<Vector3>(); var t = new List<int>(); var xs = new List<float>(); for(int i=0;i<=24;i++) xs.Add(-0.5f+i/24f);
-            if(hatch) { xs.Add(0.5f/4.1f); xs.Add(1.7f/4.1f); xs.Sort(); }
-            float[] zs = hatch ? new[] { -0.5f,-3.7f/9f,-2.3f/9f,0.5f } : new[] { -0.5f,0.5f };
-            for(int i=0;i<xs.Count-1;i++) for(int j=0;j<zs.Length-1;j++)
+            var v=new List<Vector3>();var t=new List<int>();var xs=new List<float>();for(int i=0;i<=24;i++)xs.Add(-.5f+i/24f);
+            if(hatch){xs.Add(.5f/4.1f);xs.Add(1.7f/4.1f);xs.Sort();}
+            float[] zs=hatch?new[]{-.5f,-3.7f/9f,-2.3f/9f,.5f}:new[]{-.5f,.5f};
+            System.Func<int,int,bool> filled=(i,j)=>
             {
-                float x=(xs[i]+xs[i+1])*0.5f,z=(zs[j]+zs[j+1])*0.5f;
-                if(hatch&&x>0.5f/4.1f&&x<1.7f/4.1f&&z>-3.7f/9f&&z<-2.3f/9f) continue;
-                var a=new Vector3(xs[i],Mathf.Sqrt(Mathf.Max(0f,1f-xs[i]*xs[i]*4f))*0.5f,zs[j]);
-                var b=new Vector3(xs[i+1],Mathf.Sqrt(Mathf.Max(0f,1f-xs[i+1]*xs[i+1]*4f))*0.5f,zs[j]);
-                Tri(v,t,a,b,new Vector3(b.x,b.y,zs[j+1]),Vector3.up); Tri(v,t,a,new Vector3(b.x,b.y,zs[j+1]),new Vector3(a.x,a.y,zs[j+1]),Vector3.up);
-                Tri(v,t,a,b,new Vector3(b.x,b.y,zs[j+1]),Vector3.down); Tri(v,t,a,new Vector3(b.x,b.y,zs[j+1]),new Vector3(a.x,a.y,zs[j+1]),Vector3.down);
-                if(j==0) foreach(float end in new[]{-0.5f,0.5f}) Tri(v,t,new Vector3(a.x,a.y,end),new Vector3(b.x,b.y,end),new Vector3(0f,0f,end),Vector3.forward*Mathf.Sign(end));
+                if(i<0||j<0||i>=xs.Count-1||j>=zs.Length-1)return false;
+                float x=(xs[i]+xs[i+1])*.5f,z=(zs[j]+zs[j+1])*.5f;
+                return !(hatch&&x>.5f/4.1f&&x<1.7f/4.1f&&z>-3.7f/9f&&z<-2.3f/9f);
+            };
+            System.Func<float,float,float,Vector3> point=(x,z,y)=>new Vector3(x,y,z);
+            System.Func<float,float> curve=x=>Mathf.Sqrt(Mathf.Max(0f,1f-x*x*4f))*.5f;
+            System.Action<Vector3,Vector3,Vector3,Vector3,Vector3> quad=(a,b,c,d,n)=>{Tri(v,t,a,b,c,n);Tri(v,t,a,c,d,n);};
+            // Solid shell closes the eaves, both ends and every edge of the ladder opening.
+            for(int i=0;i<xs.Count-1;i++)for(int j=0;j<zs.Length-1;j++)
+            {
+                if(!filled(i,j))continue;
+                var a=point(xs[i],zs[j],curve(xs[i]));var b=point(xs[i+1],zs[j],curve(xs[i+1]));
+                var c=point(xs[i+1],zs[j+1],curve(xs[i+1]));var d=point(xs[i],zs[j+1],curve(xs[i]));
+                var aa=point(a.x,a.z,-.03f);var bb=point(b.x,b.z,-.03f);var cc=point(c.x,c.z,-.03f);var dd=point(d.x,d.z,-.03f);
+                quad(a,b,c,d,Vector3.up);quad(aa,bb,cc,dd,Vector3.down);
+                if(!filled(i-1,j))quad(a,d,dd,aa,Vector3.left);
+                if(!filled(i+1,j))quad(b,c,cc,bb,Vector3.right);
+                if(!filled(i,j-1))quad(a,b,bb,aa,Vector3.back);
+                if(!filled(i,j+1))quad(d,c,cc,dd,Vector3.forward);
             }
             return Make(v,t);
         }

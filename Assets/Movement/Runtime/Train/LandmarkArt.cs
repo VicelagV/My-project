@@ -66,7 +66,9 @@ namespace AllAboard.Train
                 {
                     foreach(float side in new[]{-1f,1f})Box(root,"Tunnel Portal Pier",new Vector3(side*4.5f,3.4f,z),new Vector3(1f,6.8f,1.3f),m[2]);
                     Box(root,"Tunnel Portal Crown",new Vector3(0f,6.65f,z),new Vector3(10f,.75f,1.3f),m[2]);
-                    for(int i=0;i<7;i++){float angle=20f+i*23.3f;var stone=Box(root,"Portal Arch Stone",new Vector3(Mathf.Cos(angle*Mathf.Deg2Rad)*4.3f,2.1f+Mathf.Sin(angle*Mathf.Deg2Rad)*4.3f,z-.7f),new Vector3(1f,.45f,.3f),m[8]);stone.transform.localRotation=Quaternion.Euler(0f,0f,angle+90f);}
+                    var facing=new GameObject("Tunnel Portal Dressing").transform;facing.SetParent(root,false);facing.localPosition=new Vector3(0f,0f,z);facing.localRotation=Quaternion.Euler(0f,z>0f?180f:0f,0f);
+                    PortalArch.Build(facing,0f,m[8]);
+                    for(int i=1;i<12;i++){float angle=i*15f;var joint=Box(facing,"Arch Mortar Joint",new Vector3(Mathf.Cos(angle*Mathf.Deg2Rad)*4.425f,2f+Mathf.Sin(angle*Mathf.Deg2Rad)*4.425f,-.845f),new Vector3(.025f,.73f,.025f),m[2]);joint.transform.localRotation=Quaternion.Euler(0f,0f,angle-90f);}
                 }
                 return;
             }
@@ -80,8 +82,15 @@ namespace AllAboard.Train
             }
             if(plan.kind==LandmarkKind.Mine)
             {
-                foreach(float x in new[]{-3f,3f})Box(site,"Mine Headframe Leg",new Vector3(x,4f,0f),new Vector3(.55f,8f,.55f),m[2],true);
-                Box(site,"Mine Headframe Beam",new Vector3(0f,8f,0f),new Vector3(7.5f,.6f,1f),m[2]);
+                foreach(float z in new[]{-1.8f,1.8f})
+                {
+                    foreach(float x in new[]{-3f,3f})Box(site,"Mine Headframe Leg",new Vector3(x,4f,z),new Vector3(.55f,8f,.55f),m[2],true);
+                    Box(site,"Mine Headframe Beam",new Vector3(0f,8f,z),new Vector3(7.5f,.6f,.6f),m[2]);
+                    foreach(float side in new[]{-1f,1f}){var brace=Box(site,"Headframe Diagonal Brace",new Vector3(side*1.5f,5.7f,z),new Vector3(.22f,5.4f,.22f),m[2]);brace.transform.localRotation=Quaternion.Euler(0f,0f,side*36f);}
+                }
+                Box(site,"Headframe Cross Tie",new Vector3(0f,8f,0f),new Vector3(.6f,.6f,4.2f),m[2]);
+                var pulley=GameObject.CreatePrimitive(PrimitiveType.Cylinder);pulley.name="Mine Winding Drum";pulley.transform.SetParent(site,false);pulley.transform.localPosition=new Vector3(0f,8.6f,0f);pulley.transform.localRotation=Quaternion.Euler(0f,0f,90f);pulley.transform.localScale=new Vector3(1.3f,.7f,1.3f);pulley.GetComponent<Renderer>().sharedMaterial=m[3];pulley.GetComponent<Collider>().enabled=false;if(Application.isPlaying)Object.Destroy(pulley.GetComponent<Collider>());else Object.DestroyImmediate(pulley.GetComponent<Collider>());
+                Box(site,"Mine Hoist Cable",new Vector3(0f,4.1f,.62f),new Vector3(.04f,7.4f,.04f),m[5]);
                 Box(site,"Mine Entrance Shadow",new Vector3(0f,1.9f,3.5f),new Vector3(5.5f,3.8f,.15f),m[5]);
                 Shelter(site,"Mine Supply Shed",m,5f,4f,new Vector3(9f,0f,1f));
                 for(int i=0;i<4;i++)Box(site,"Ore Pile",new Vector3(-6f+i*1.1f,.4f,3f),new Vector3(1f,.8f,1f),m[3]);
@@ -91,6 +100,9 @@ namespace AllAboard.Train
                 Shelter(site,"Logging Supply Shed",m,6f,4f);
                 for(int i=0;i<8;i++)Box(site,"Cut Timber",new Vector3(11f,.4f+(i/3)*.6f,(i%3)*.7f),new Vector3(9f,.55f,.55f),m[2]);
                 Box(site,"Log Crane Mast",new Vector3(16f,3f,5f),new Vector3(.3f,6f,.3f),m[3]);Box(site,"Crane Jib",new Vector3(13f,6f,5f),new Vector3(6f,.25f,.25f),m[3]);
+                Box(site,"Crane Cable",new Vector3(10.2f,4.4f,5f),new Vector3(.035f,3.1f,.035f),m[5]);
+                Box(site,"Crane Hook Shank",new Vector3(10.2f,2.78f,5f),new Vector3(.10f,.23f,.10f),m[3]);Box(site,"Crane Hook Tip",new Vector3(10.28f,2.66f,5f),new Vector3(.23f,.1f,.1f),m[3]);
+                var jibBrace=Box(site,"Crane Jib Brace",new Vector3(14.7f,5.2f,5f),new Vector3(2.7f,.12f,.12f),m[3]);jibBrace.transform.localRotation=Quaternion.Euler(0f,0f,-31f);
             }
             if(plan.kind==LandmarkKind.Ruins)
             {
@@ -108,10 +120,11 @@ namespace AllAboard.Train
             {
                 Shelter(site,"Bandit Camp Shelter",m,5f,3.5f);
                 foreach(float x in new[]{-6f,6f})Box(site,"Camp Barricade",new Vector3(x,.7f,-4f),new Vector3(4f,1.4f,.6f),m[2],true);
-                Box(site,"Camp Fire Ring",new Vector3(0f,.1f,-8f),new Vector3(1.8f,.2f,1.8f),m[1]);
+                for(int i=0;i<8;i++){float angle=i*Mathf.PI/4f;Box(site,"Camp Fire Stone",new Vector3(Mathf.Cos(angle)*.8f,.12f,-8f+Mathf.Sin(angle)*.8f),new Vector3(.35f,.24f,.35f),m[1]);}
+                foreach(float side in new[]{-1f,1f}){var log=Box(site,"Firewood",new Vector3(0f,.13f,-8f+side*.16f),new Vector3(1f,.18f,.18f),m[2]);log.transform.localRotation=Quaternion.Euler(0f,side*28f,0f);}
             }
             if(plan.kind!=LandmarkKind.Checkpoint)
-                for(int i=0;i<2;i++)Loot(site,new Vector3(-1f+i*2f,.4f,1f),40+i*20,m);
+                for(int i=0;i<2;i++)Loot(site,new Vector3(-1f+i*2f,.5f,1f),40+i*20,m);
         }
         private static void Shelter(Transform parent,string name,Material[] m,float width,float height,Vector3 offset=default)
         {
@@ -119,7 +132,18 @@ namespace AllAboard.Train
             Box(shed,"Shed Floor",new Vector3(0f,.08f,0f),new Vector3(width,.16f,6f),m[2],true);
             foreach(float side in new[]{-1f,1f})Box(shed,"Shed Side",new Vector3(side*width*.5f,height*.5f,0f),new Vector3(.18f,height,6f),m[2],true);
             Box(shed,"Shed Back",new Vector3(0f,height*.5f,3f),new Vector3(width,height,.18f),m[2],true);
-            foreach(float side in new[]{-1f,1f}){var roof=Box(shed,"Shed Roof",new Vector3(side*width*.25f,height+.3f,0f),new Vector3(width*.58f,.2f,6.6f),m[7]);roof.transform.localRotation=Quaternion.Euler(0f,0f,-side*18f);}
+            BuildingRoof.Build(shed,"Shed Roof",Vector3.zero,width+.18f,6.18f,height,18f,m[7],m[2],.3f);
+            float opening=Mathf.Min(2.6f,width-1f),sideWidth=(width-opening)*.5f;
+            foreach(float side in new[]{-1f,1f})
+            {
+                Box(shed,"Shed Front Pier",new Vector3(side*(opening+sideWidth)*.5f,height*.5f,-3f),new Vector3(sideWidth,height,.18f),m[2],true);
+                Box(shed,"Entrance Frame",new Vector3(side*opening*.5f,1.35f,-3.14f),new Vector3(.14f,2.7f,.16f),m[8]);
+                Box(shed,"Shed Corner Trim",new Vector3(side*width*.5f,height*.5f,-3.12f),new Vector3(.12f,height,.12f),m[8]);
+            }
+            Box(shed,"Shed Door Lintel",new Vector3(0f,(height+2.6f)*.5f,-3f),new Vector3(opening,height-2.6f,.18f),m[2],true);
+            Box(shed,"Entrance Header",new Vector3(0f,2.65f,-3.14f),new Vector3(opening+.2f,.16f,.16f),m[8]);
+            Box(shed,"Shed Step",new Vector3(0f,.06f,-3.25f),new Vector3(opening,.12f,.6f),m[1],true);
+            for(float x=-width*.5f+.4f;x<width*.5f;x+=.55f)Box(shed,"Shed Cladding Seam",new Vector3(x,height*.5f,3.11f),new Vector3(.025f,height,.025f),m[8]);
         }
         private static void Fence(Transform p,Vector3 at,float length,Material[] m)
         {for(float x=0f;x<length;x+=2f)Box(p,"Fence Post",at+new Vector3(x,.65f,0f),new Vector3(.12f,1.3f,.12f),m[2]);foreach(float y in new[]{.5f,1f})Box(p,"Fence Rail",at+new Vector3(length*.5f,y,0f),new Vector3(length,.1f,.1f),m[2]);}

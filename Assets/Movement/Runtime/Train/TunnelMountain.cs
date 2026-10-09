@@ -22,7 +22,12 @@ namespace AllAboard.Train
             {
                 float floor=xs[x]>=-4f&&xs[x+1]<=4f?6.8f:0f;
                 Vector3 a=new Vector3(xs[x],floor,end),b=new Vector3(xs[x+1],floor,end),c=new Vector3(xs[x+1],top(xs[x+1],end),end),d=new Vector3(xs[x],top(xs[x],end),end);
-                if(end<0f)quad(a,b,c,d);else quad(b,a,d,c);
+                if(end<0f)quad(b,a,d,c);else quad(a,b,c,d);
+            }
+            foreach(float side in new[]{-160f,160f})for(int z=0;z<zs.Length-1;z++)
+            {
+                Vector3 a=new Vector3(side,0f,zs[z]),b=new Vector3(side,0f,zs[z+1]),c=new Vector3(side,top(side,zs[z+1]),zs[z+1]),d=new Vector3(side,top(side,zs[z]),zs[z]);
+                if(side<0f)quad(a,b,c,d);else quad(b,a,d,c);
             }
             var mesh=new Mesh{name="Large Mountain with Tunnel Openings"};mesh.SetVertices(verts);mesh.SetTriangles(faces,0);mesh.RecalculateNormals();mesh.RecalculateBounds();
             var model=new GameObject("Large Tunnel Mountain",typeof(MeshFilter),typeof(MeshRenderer),typeof(MeshCollider));model.transform.SetParent(root,false);

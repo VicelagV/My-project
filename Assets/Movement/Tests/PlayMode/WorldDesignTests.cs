@@ -74,7 +74,8 @@ namespace AllAboard.Movement.Tests
             foreach(var shop in shops)
             {
                 var vendors=shop.GetComponentsInChildren<RailwayVendor>();if(vendors.Length==0)continue;open++;
-                Assert.That(vendors.Select(x=>x.Product).Distinct().Count(),Is.EqualTo(4));
+                Assert.That(vendors.Select(x=>x.Product).Distinct().Count(),Is.GreaterThanOrEqualTo(4));
+                if(vendors.Length>4)foreach(var needed in new[]{RailwayProduct.Scrap,RailwayProduct.Screws,RailwayProduct.BoilerPart,RailwayProduct.BrakePart,RailwayProduct.CoachPart})Assert.That(vendors.Any(v=>v.Product==needed),Is.True);
                 Assert.That(vendors.All(x=>x.GetComponent<TrainButton>()!=null&&x.GetComponent<Collider>()!=null),Is.True);
             }
             Assert.That(open,Is.GreaterThan(0));

@@ -10,6 +10,7 @@ namespace AllAboard.Train
         [SerializeField] private float steamPerCoal = 40f;
         [SerializeField] private float pressurePerCoal = 5f;
         [SerializeField, Min(0f)] private float fullThrottleDrain = 0.5f;
+        public float EfficiencyMultiplier {get;set;}=1f;
         public float Steam => steam;
         public float Pressure => pressure;
         public int CoalSupply => coalSupply;
@@ -17,7 +18,7 @@ namespace AllAboard.Train
         public bool Critical { get; private set; }
         public float Performance => steam <= 0.01f ? 0f : steam < 20f ? Mathf.Lerp(0.2f, 1f, steam / 20f) : steam > 80f ? 1.25f : 1f;
         public float BrakeEfficiency => Mathf.Lerp(0.35f, 1f, Mathf.Clamp01(pressure / 10f));
-        public float ConsumptionPerSecond(float throttle, bool braking) => braking ? 0f : Mathf.Clamp01(throttle) * fullThrottleDrain;
+        public float ConsumptionPerSecond(float throttle, bool braking) => braking ? 0f : Mathf.Clamp01(throttle) * fullThrottleDrain * Mathf.Clamp(EfficiencyMultiplier,.5f,1f);
         public void SetLevels(float newSteam, float newPressure) { steam = Mathf.Clamp(newSteam, 0f, 100f); pressure = Mathf.Clamp(newPressure, 0f, 100f); UpdateWarning(); }
         public bool AddCoal()
         {

@@ -9,6 +9,7 @@ namespace AllAboard.Train
         public float Health => health;
         public float DamageFraction=>1f-health/maximumHealth;
         public bool IsBroken => health <= 0f;
+        public void Repair(float amount){health=Mathf.Clamp(health+Mathf.Max(0,amount),0,maximumHealth);}
         public void Damage(float amount) { health = Mathf.Clamp(health - Mathf.Max(0f, amount), 0f, maximumHealth); }
     }
 }

@@ -21,6 +21,7 @@ namespace AllAboard.Train
         private readonly Dictionary<string,float> damageDistances=new Dictionary<string,float>();
         private readonly HashSet<string> passedDamage=new HashSet<string>();
         private System.Random derailRandom;
+        private RunProgress loadedProgress;
         public string DayEndReason {get;private set;}
         public RouteNetwork Network {get;private set;}
         public RailPath Path=>railPath;
@@ -41,7 +42,29 @@ namespace AllAboard.Train
         public void FinishEconomicDay(string report){if(DayEnded)return;DayEnded=true;DayEndReason=report;train.StopJourney();}
         public void Configure(TrainController owner,RailPath path,GameObject coal,Material[] materials,int baseSeed=8008,float minutes=15f)
         {train=owner;railPath=path;coalPrefab=coal;palette=materials;seed=baseSeed;driveMinutes=minutes;}
-        private void Awake(){if(train!=null&&railPath!=null&&palette!=null&&palette.Length>=10)BuildInitialWorld();}
+        private void Awake()
+        {
+            if(Application.isPlaying&&!Application.isBatchMode){loadedProgress=RunProgressStore.SessionCheckpoint??RunProgressStore.Load(RunProgressStore.DefaultPath);if(loadedProgress!=null){day=loadedProgress.nextDay;seed=loadedProgress.seed;}}
+            if(train!=null&&railPath!=null&&palette!=null&&palette.Length>=10)BuildInitialWorld();
+            if(loadedProgress!=null&&loadedProgress.failed){train.GetComponent<RailwayInventory>().FailDay("Run ended — start a fresh run in the service ledger");FinishEconomicDay("Run ended — start a fresh run in the service ledger");}
+        }
+        public void SaveProgress(bool success,EconomyDifficulty difficulty)
+        {
+            if(Application.isBatchMode)return;
+            var bag=train.GetComponent<RailwayInventory>();var data=new RunProgress{nextDay=success?day+1:day,blumt=bag.Blumt,repairDebt=bag.RepairDebt,seed=seed,difficulty=difficulty,failed=!success,upgrades=train.GetComponent<TrainMaintenance>()?.Snapshot()};
+            RunProgressStore.SessionCheckpoint=data;
+            try{RunProgressStore.Save(RunProgressStore.DefaultPath,data);}catch(System.IO.IOException error){Debug.LogWarning("Could not save run progress: "+error.Message);}
+        }
+        public void SavePreparation()
+        {
+            if(Application.isBatchMode)return;var bag=train.GetComponent<RailwayInventory>();var data=new RunProgress{nextDay=day,blumt=bag.Blumt,repairDebt=bag.RepairDebt,seed=seed,difficulty=train.GetComponent<TrainDayEconomy>().Difficulty,upgrades=train.GetComponent<TrainMaintenance>()?.Snapshot()};RunProgressStore.SessionCheckpoint=data;try{RunProgressStore.Save(RunProgressStore.DefaultPath,data);}catch(System.IO.IOException error){Debug.LogWarning("Could not save preparation: "+error.Message);}
+        }
+        public bool PrepareNextDay()
+        {
+            var bag=train.GetComponent<RailwayInventory>();if(!DayEnded||!bag.Settled||bag.DayReport==null||!bag.DayReport.StartsWith("Day complete"))return false;
+            SaveProgress(true,train.GetComponent<TrainDayEconomy>().Difficulty);UnityEngine.SceneManagement.SceneManager.LoadScene(gameObject.scene.path);return true;
+        }
+        public void StartFreshRun(){RunProgressStore.SessionCheckpoint=null;RunProgressStore.NewRun(RunProgressStore.DefaultPath);UnityEngine.SceneManagement.SceneManager.LoadScene(gameObject.scene.path);}
         public void BuildInitialWorld()
         {
             if(Application.isPlaying&&train.HeadDistance>80.1f)throw new System.InvalidOperationException("Generate a new world before departure, not while travelling.");
@@ -52,7 +75,7 @@ namespace AllAboard.Train
             float baseLength=probe.Length-240f;if(Application.isPlaying)Destroy(measurement);else DestroyImmediate(measurement);
             Network=RouteNetwork.Generate(DailySeed,driveMinutes*60f*12f/baseLength);
             railPath.Configure(PlanPoints(out nodeIndices));train.Configure(railPath,train.Cars.ToArray(),80f);
-            var inventory=train.GetComponent<RailwayInventory>();if(inventory==null)inventory=train.gameObject.AddComponent<RailwayInventory>();inventory.BeginDay(day);
+            var inventory=train.GetComponent<RailwayInventory>();if(inventory==null)inventory=train.gameObject.AddComponent<RailwayInventory>();if(loadedProgress!=null)inventory.RestoreProgress(loadedProgress.blumt,loadedProgress.repairDebt);inventory.BeginDay(day);
             generated=new GameObject("Generated Route World").transform;generated.SetParent(transform,false);
             if(!Application.isPlaying)generated.gameObject.hideFlags=HideFlags.DontSaveInEditor;
             Geometry=generated.gameObject.AddComponent<RouteGeometry>();Geometry.Build(Network,palette[0],palette[1],palette[2],palette[3],palette[4]);
@@ -68,7 +91,7 @@ namespace AllAboard.Train
                 if(RouteGeometry.IsStop(node.place))RouteProps.Station(generated,node,palette,train,coalPrefab);
                 if(Network.Outgoing(node.id).Count()>1)RouteProps.Switch(generated,node,this,palette);
             }
-            var economy=train.GetComponent<TrainDayEconomy>();if(economy==null)economy=train.gameObject.AddComponent<TrainDayEconomy>();economy.Configure(this);
+            var economy=train.GetComponent<TrainDayEconomy>();if(economy==null)economy=train.gameObject.AddComponent<TrainDayEconomy>();if(loadedProgress!=null)economy.SetDifficulty(loadedProgress.difficulty);economy.Configure(this,palette);if(loadedProgress!=null)train.GetComponent<TrainMaintenance>().Restore(loadedProgress.upgrades);
             Physics.SyncTransforms();
         }
         private Vector3[] PlanPoints(out Dictionary<string,int> indices)
@@ -122,8 +145,9 @@ namespace AllAboard.Train
                     // Slow entry is safe, but accelerating on damaged rails still checks the risk.
                     if(section.IsRepaired||(!section.IsMissing&&Mathf.Abs(train.Speed)<=3f))continue;
                     if(!passedDamage.Add(token))continue;
+                    train.GetComponent<TrainMaintenance>()?.TrackImpact(section.IsMissing?60:Mathf.Max(0,Mathf.Abs(train.Speed)-3)*4);
                     if(section.IsMissing||derailRandom.NextDouble()<RailDamagePlan.DerailChance(train.Speed))
-                    {DayEnded=true;DayEndReason=section.IsMissing?"Derailed: missing rails":"Derailed: exceeded 3 m/s on damaged rails";train.Derail();return;}
+                    {DayEnded=true;DayEndReason=section.IsMissing?"Derailed: missing rails":"Derailed: exceeded 3 m/s on damaged rails";train.Derail();train.GetComponent<TrainDayEconomy>()?.Abort(DayEndReason);return;}
                 }
             }
         }

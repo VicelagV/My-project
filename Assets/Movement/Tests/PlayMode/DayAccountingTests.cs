@@ -65,12 +65,12 @@ namespace AllAboard.Movement.Tests
             train.Configure(world.Path,train.Cars.ToArray(),world.NodeDistance("Gate"));train.Braking=true;
             yield return new WaitForFixedUpdate();yield return new WaitForFixedUpdate();
             Assert.That(economy.GateBlocked,Is.True);Assert.That(train.Speed,Is.Zero);Assert.That(ledger.EntryPaid,Is.False);Assert.That(world.DayEnded,Is.False);
-            foreach(var group in economy.Passengers.GroupBy(p=>p.Destination).ToArray())
+            foreach(var node in world.Network.nodes.Where(n=>n.id!="Redfort"&&RouteGeometry.IsStop(n.place)&&world.NodeDistance(n.id)>=0f).OrderBy(n=>world.NodeDistance(n.id)))
             {
-                train.Configure(world.Path,train.Cars.ToArray(),world.NodeDistance(group.Key));train.Braking=true;
+                train.Configure(world.Path,train.Cars.ToArray(),world.NodeDistance(node.id));train.Braking=true;
                 yield return new WaitForFixedUpdate();yield return new WaitForFixedUpdate();
-                Assert.That(group.All(p=>p.Resolved),Is.True,"Stop must deliver passengers: "+group.Key);
             }
+            Assert.That(economy.Passengers.All(p=>p.Resolved),Is.True);
             Assert.That(ledger.EntryPaid,Is.True);Assert.That(world.DayEnded,Is.True);Assert.That(ledger.DayReport,Does.StartWith("Day complete"));Assert.That(ledger.Blumt,Is.GreaterThan(0));
         }
     }

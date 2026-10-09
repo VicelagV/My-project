@@ -84,11 +84,15 @@ namespace AllAboard.Train
                 // A sloping gravel shoulder and three-part rail section replace flat strips.
                 Strip(a,b,qa,qb,0f,5.0f,0.035f,-0.0115f,ballast,6.0f,d==0f,d+2f>=path.Length);
                 if(edge!=null&&RailDamagePlan.HasDamage(edge)&&d>=RailDamagePlan.Start(edge,path.Length)&&d<RailDamagePlan.Start(edge,path.Length)+RailDamagePlan.Length)continue;
+                bool damageBoundary=edge!=null&&RailDamagePlan.HasDamage(edge);
+                float damagedAt=damageBoundary?RailDamagePlan.Start(edge,path.Length):-100f;
+                bool beginCap=d==0f||(damageBoundary&&Mathf.Abs(d-damagedAt-RailDamagePlan.Length)<.001f);
+                bool endCap=d+2f>=path.Length||(damageBoundary&&Mathf.Abs(d+2f-damagedAt)<.001f);
                 foreach(float side in new[]{-1.98f,1.98f})
                 {
-                    Strip(a,b,qa,qb,side,0.22f,0.018f,0.035f,rail,capStart:d==0f,capEnd:d+2f>=path.Length);
-                    Strip(a,b,qa,qb,side,0.055f,0.030f,0.055f,rail,capStart:d==0f,capEnd:d+2f>=path.Length);
-                    Strip(a,b,qa,qb,side,0.14f,0.022f,0.080f,rail,capStart:d==0f,capEnd:d+2f>=path.Length);
+                    Strip(a,b,qa,qb,side,0.22f,0.018f,0.035f,rail,capStart:beginCap,capEnd:endCap);
+                    Strip(a,b,qa,qb,side,0.055f,0.030f,0.055f,rail,capStart:beginCap,capEnd:endCap);
+                    Strip(a,b,qa,qb,side,0.14f,0.022f,0.080f,rail,capStart:beginCap,capEnd:endCap);
                 }
             }
         }

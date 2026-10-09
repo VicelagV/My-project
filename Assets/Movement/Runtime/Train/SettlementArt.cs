@@ -54,7 +54,7 @@ namespace AllAboard.Train
             int houses=city?10:node.place==RoutePlace.Town?7:4;
             int leftCount=houses>=7?(houses+1)/2+1:(houses+1)/2;
             var dirt=assets.Paint(m[0],"Town Road",new Color(.45f,.33f,.20f));
-            if(node.place!=RoutePlace.Terminum)
+            if(node.place!=RoutePlace.Terminum&&node.place!=RoutePlace.Village)
             {
                 Box(station,"Town Main Street",new Vector3(45f,.025f,-2f),new Vector3(17f,.05f,105f),dirt);
                 foreach(float side in new[]{-1f,1f})Box(station,"Wooden Boardwalk",new Vector3(45f+side*11f,.12f,-2f),new Vector3(5f,.24f,105f),m[2],true);
@@ -67,8 +67,11 @@ namespace AllAboard.Train
                 float z=(side<0f?-43f:-32f)+row*18f+(float)(rng.NextDouble()-.5f)*6f;
                 float setback=18f+(float)(rng.NextDouble()-.5f)*5f;
                 var paint=assets.Paint(m[0],"House Paint "+(i%5),new[]{new Color(.53f,.29f,.18f),new Color(.65f,.56f,.39f),new Color(.34f,.43f,.33f),new Color(.57f,.40f,.29f),new Color(.44f,.35f,.28f)}[i%5]);
-                House(station,new Vector3(45f+side*setback,.0f,z),side<0f?-90f:90f,5.8f+(float)rng.NextDouble()*2.3f,4f+(float)rng.NextDouble()*2.3f,paint,roof,m,i,node.settlement==SettlementKind.Abandoned);
+                var housePosition=new Vector3(45f+side*setback,.0f,z);
+                if(node.place==RoutePlace.Village)VillageRoads.HouseLane(station,housePosition,side,dirt,m);
+                House(station,housePosition,side<0f?-90f:90f,5.8f+(float)rng.NextDouble()*2.3f,4f+(float)rng.NextDouble()*2.3f,paint,roof,m,i,node.settlement==SettlementKind.Abandoned);
             }
+            if(node.place==RoutePlace.Village)VillageRoads.Build(station,dirt,m,node.settlement);
             int shops=city?4:node.shops;
             var market=new GameObject("Marketplace").transform;market.SetParent(station,false);market.localPosition=new Vector3(28f,0f,58f);
             Box(market,"Market Boardwalk",new Vector3(0f,.2f,0f),new Vector3(18f,.4f,14f),m[2],true);
@@ -152,19 +155,20 @@ namespace AllAboard.Train
             foreach(float x in new[]{-1.7f,1.7f})Box(shop,"Shop Post",new Vector3(x,1.6f,0f),new Vector3(.13f,3.2f,.13f),m[2]);
             Box(shop,"Canvas Shop Awning",new Vector3(0f,3.3f,.8f),new Vector3(3.9f,.18f,3f),index%2==0?m[7]:m[4]);
             var counter=Box(shop,"Shop Counter",new Vector3(0f,.62f,0f),new Vector3(3.3f,1.24f,1f),m[2],true);
-            RouteProps.Board(shop,"SALVAGE BOUGHT HERE",new Vector3(0f,1.9f,1.7f),new Vector3(2.9f,.28f,.04f),m,Quaternion.identity);
-            RouteProps.Board(shop,closed?"CLOSED":index>=2?"ODDS & ENDS - SALE":index%2==0?"RAIL & REPAIRS":"COAL & SUPPLIES",new Vector3(0f,2.5f,1.7f),new Vector3(3.2f,.5f,.08f),m,Quaternion.identity);
+            RouteProps.Box(shop,"Purchase Console Backing",new Vector3(0f,1.9f,-.49f),new Vector3(3.3f,2.3f,.1f),m[2],false);
+            RouteProps.Board(shop,"SALVAGE BOUGHT HERE",new Vector3(0f,2.55f,-.57f),new Vector3(2.9f,.2f,.04f),m,Quaternion.identity);
+            RouteProps.Board(shop,closed?"CLOSED":index>=2?"ODDS & ENDS - SALE":index%2==0?"RAIL & REPAIRS":"COAL & SUPPLIES",new Vector3(0f,2.95f,-.57f),new Vector3(3.2f,.3f,.08f),m,Quaternion.identity);
             for(int i=0;i<3;i++)Box(shop,index%2==0?"Steel Stock":"Coal Stock",new Vector3(-.9f+i*.8f,1.5f,0f),new Vector3(.55f,.3f,.65f),index%2==0?m[3]:m[5]);
             if(!closed)
-                for(int i=0;i<4;i++)
+                for(int i=0;i<(index<2?11:4);i++)
                 {
-                    var products=index>=2?new[]{RailwayProduct.Scrap,RailwayProduct.Screws,RailwayProduct.Wood,RailwayProduct.Steel,RailwayProduct.Coal,RailwayProduct.Saw,RailwayProduct.Connector}.OrderBy(x=>WorldArtAssets.Hash(p.parent.name+at.ToString()+x)).Take(4).ToArray():new[]{RailwayProduct.Steel,RailwayProduct.Coal,RailwayProduct.Saw,RailwayProduct.Connector};
+                    var products=index>=2?new[]{RailwayProduct.Scrap,RailwayProduct.Screws,RailwayProduct.Wood,RailwayProduct.Steel,RailwayProduct.Coal,RailwayProduct.Saw,RailwayProduct.Connector,RailwayProduct.Wrench,RailwayProduct.BoilerPart,RailwayProduct.BrakePart,RailwayProduct.CoachPart}.OrderBy(x=>WorldArtAssets.Hash(p.parent.name+at.ToString()+x)).Take(4).ToArray():new[]{RailwayProduct.Steel,RailwayProduct.Coal,RailwayProduct.Saw,RailwayProduct.Connector,RailwayProduct.Wrench,RailwayProduct.BoilerPart,RailwayProduct.BrakePart,RailwayProduct.CoachPart,RailwayProduct.Scrap,RailwayProduct.Screws,RailwayProduct.Wood};
                     var product=products[i];
                     var config=train.GetComponent<RailwayInventory>().Config;
                     float factor=place==RoutePlace.Village?config.villageMultiplier:1f;
                     if(index>=2)factor*=1f-config.merchantDiscount;
-                    string label=(product==RailwayProduct.Steel?"STEEL 5m":product.ToString().ToUpperInvariant())+"\n"+Mathf.RoundToInt(config.ProductPrice(product)*factor)+" GOLD";
-                    var cap=WorldButtonArt.Create(shop,new Vector3(-1.2f+i*.8f,.86f,-.56f),label,m);
+                    string label=(product==RailwayProduct.Steel?"STEEL 5m":product==RailwayProduct.BoilerPart?"BOILER PART":product==RailwayProduct.BrakePart?"BRAKE PART":product==RailwayProduct.CoachPart?"COACH PART":product.ToString().ToUpperInvariant())+"\n"+Mathf.RoundToInt(config.ProductPrice(product)*factor)+" GOLD";
+                    var cap=WorldButtonArt.Create(shop,new Vector3(-1.2f+(i%4)*.8f,.64f+(i/4)*.72f,-.56f),label,m);
                     var vendor=cap.AddComponent<RailwayVendor>();vendor.Configure(train,product,coal,m);vendor.SetPriceMultiplier(factor);vendor.SetSpecialization(index%2==0?SalvageCategory.RailParts:SalvageCategory.Fuel,index>=2);
                 }
         }

@@ -25,8 +25,10 @@ namespace AllAboard.Movement
         private PrototypeInteractable hoveredControl;
         private AllAboard.Train.TrainLever grabbedLever;
         private AllAboard.Train.RailSawControl grabbedSaw;
+        private AllAboard.Train.MaintenanceWrench grabbedWrench;
         [SerializeField] private bool showInteractionPrompts = true;
-        public bool IsUsingHandControl => grabbedLever != null || grabbedSaw != null;
+        public bool IsUsingHandControl => grabbedLever != null || grabbedSaw != null || grabbedWrench != null;
+        public bool TryGrabWrench(AllAboard.Train.MaintenanceWrench wrench){if(IsHolding||IsUsingHandControl||wrench==null||!wrench.Mounted||wrench.Finished)return false;grabbedWrench=wrench;view.SetHandControlTarget(wrench.transform);return true;}
         public bool TryGrabSaw(AllAboard.Train.RailSawControl saw)
         {
             if(IsHolding||IsUsingHandControl||saw==null||!saw.Mounted||saw.Finished)return false;
@@ -51,6 +53,7 @@ namespace AllAboard.Movement
             if (grabbedLever != null) grabbedLever.EndGrip(this);
             grabbedLever = null;
             grabbedSaw = null;
+            grabbedWrench=null;
             if (view != null) view.SetHandControlTarget(null);
         }
         private Texture2D dot;
@@ -89,6 +92,7 @@ namespace AllAboard.Movement
                 chargeTime = 0f;
                 return;
             }
+            if(grabbedWrench!=null){if(!input.GrabHeld||input.InteractPressed||Vector3.Distance(cameraPivot.position,grabbedWrench.transform.position)>reach||!grabbedWrench.Drag(input.Look.y))ReleaseThrottle();return;}
             if (grabbedSaw != null)
             {
                 if(!input.GrabHeld||input.InteractPressed||Vector3.Distance(cameraPivot.position,grabbedSaw.transform.position)>reach||!grabbedSaw.Drag(input.Look.y))ReleaseThrottle();
@@ -101,8 +105,9 @@ namespace AllAboard.Movement
                 return;
             }
             RefreshHoveredTarget();
+            if(input.GrabPressed&&hoveredControl is AllAboard.Train.MaintenanceWrench wrench&&TryGrabWrench(wrench))return;
             if(input.GrabPressed&&hoveredControl is AllAboard.Train.RailSawControl saw&&TryGrabSaw(saw))return;
-            if(input.GrabPressed&&(hoveredControl is AllAboard.Train.RailwayVendor||hoveredControl is AllAboard.Train.TrainControl control&&control.GetComponent<AllAboard.Train.TrainButton>()!=null))
+            if(input.GrabPressed&&(hoveredControl is AllAboard.Train.RailwayVendor||hoveredControl!=null&&hoveredControl.GetComponent<AllAboard.Train.TrainButton>()!=null))
             {hoveredControl.Interact(this);return;}
             if (input.GrabPressed && TryGrabHoveredLever())
             {
@@ -354,6 +359,7 @@ namespace AllAboard.Movement
 
         private void OnGUI()
         {
+            if(grabbedWrench!=null&&input.HasControl){GUI.Label(new Rect(Screen.width*.5f-140,Screen.height*.5f+35,280,24),"Turn wrench forward / back");GUI.Box(new Rect(Screen.width*.5f-90,Screen.height*.5f+60,180*grabbedWrench.Progress,12),"");}
             if(grabbedSaw!=null&&input.HasControl)
             {
                 GUI.Label(new Rect(Screen.width*.5f-95f,Screen.height*.5f+35f,250f,25f),"SAW: forward / backward");

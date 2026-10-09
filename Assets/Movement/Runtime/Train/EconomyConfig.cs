@@ -17,10 +17,18 @@ namespace AllAboard.Train
         public float damagedCargoMultiplier=.75f,contractPenaltyFraction=.35f,relevantSaleMultiplier=.6f,irrelevantSaleMultiplier=.3f;
         public float normalBlumt=1f,mediumBlumt=1.25f,hardBlumt=1.5f;
         public bool freePrototypeCoal=true;
+        [Header("Passenger service")]
+        public float startingHappiness=55f,delayLossPerSecond=.025f,roughDrivingLoss=.8f,poorConditionLoss=.06f,comfortRecovery=.008f;
+        public float repairGraceSeconds=180f,stationGraceSeconds=90f,expectedTravelSpeed=8f,missedStopPenalty=20f;
+        public int safeDemand=1,mixedDemand=3,hardDemand=5,bluefortDemand=1,maxContracts=3;
+        public float bankerChance=.04f,bankerTolerance=25f,cargoDamageSpeed=4f,cargoDamageScale=3f;
+        public int bankerMultiplier=10;
+        public int wrenchPrice=25;
+        public int[] upgradeBasePrices={500,400,400,600};
         public int Quota(int day)=>Mathf.RoundToInt(baseQuota*Mathf.Pow(quotaGrowth,Mathf.Max(0,day-1))/50f)*50;
         public int Destination(RoutePlace place)=>place==RoutePlace.Terminum?terminumReward:place==RoutePlace.Station?stationReward:place==RoutePlace.Village?villageReward:townReward;
         public int Tip(float happiness)=>Mathf.RoundToInt(Mathf.Lerp(minimumTip,maximumTip,Mathf.Clamp01(happiness/100f)));
-        public int ProductPrice(RailwayProduct product)=>product==RailwayProduct.Steel?steelPrice:product==RailwayProduct.Coal?coalPrice:product==RailwayProduct.Saw?sawPrice:product==RailwayProduct.Connector?connectorPrice:product==RailwayProduct.Scrap?scrapPrice:product==RailwayProduct.Screws?screwsPrice:woodPrice;
+        public int ProductPrice(RailwayProduct product)=>product==RailwayProduct.Steel?steelPrice:product==RailwayProduct.Coal?coalPrice:product==RailwayProduct.Saw?sawPrice:product==RailwayProduct.Connector?connectorPrice:product==RailwayProduct.Scrap?scrapPrice:product==RailwayProduct.Screws?screwsPrice:product==RailwayProduct.Wrench?wrenchPrice:product==RailwayProduct.BoilerPart?locomotiveComponentPrice:product==RailwayProduct.BrakePart||product==RailwayProduct.CoachPart?componentPrice:woodPrice;
         public float BlumtMultiplier(EconomyDifficulty difficulty)=>difficulty==EconomyDifficulty.Hard?hardBlumt:difficulty==EconomyDifficulty.Medium?mediumBlumt:normalBlumt;
         private static EconomyConfig fallback;
         public static EconomyConfig Default {get{var asset=Resources.Load<EconomyConfig>("EconomyDefaults");if(asset!=null)return asset;if(fallback==null){fallback=CreateInstance<EconomyConfig>();fallback.hideFlags=HideFlags.HideAndDontSave;}return fallback;}}

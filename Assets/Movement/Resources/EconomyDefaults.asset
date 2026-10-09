@@ -67,3 +67,24 @@ MonoBehaviour:
   mediumBlumt: 1.25
   hardBlumt: 1.5
   freePrototypeCoal: 1
+  startingHappiness: 55
+  delayLossPerSecond: 0.025
+  roughDrivingLoss: 0.8
+  poorConditionLoss: 0.06
+  comfortRecovery: 0.008
+  repairGraceSeconds: 180
+  stationGraceSeconds: 90
+  expectedTravelSpeed: 8
+  missedStopPenalty: 20
+  safeDemand: 1
+  mixedDemand: 3
+  hardDemand: 5
+  bluefortDemand: 1
+  maxContracts: 3
+  bankerChance: 0.04
+  bankerTolerance: 25
+  cargoDamageSpeed: 4
+  cargoDamageScale: 3
+  bankerMultiplier: 10
+  wrenchPrice: 25
+  upgradeBasePrices: f4010000900100009001000058020000i

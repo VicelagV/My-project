@@ -50,8 +50,7 @@ namespace AllAboard.Movement
             if (holder != null) Physics.IgnoreCollision(box, holder, false);
             holder = playerCollider;
             if (holder != null) Physics.IgnoreCollision(box, holder, true);
-            body.linearVelocity = Vector3.zero;
-            body.angularVelocity = Vector3.zero;
+            if(!body.isKinematic){body.linearVelocity = Vector3.zero;body.angularVelocity = Vector3.zero;}
             releasedCollisionMode = body.collisionDetectionMode;
             releasedInterpolation = body.interpolation;
             body.interpolation = RigidbodyInterpolation.None;

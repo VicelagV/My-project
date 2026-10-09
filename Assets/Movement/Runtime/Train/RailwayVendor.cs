@@ -2,7 +2,7 @@ using AllAboard.Movement;
 using UnityEngine;
 namespace AllAboard.Train
 {
-    public enum RailwayProduct { Steel, Coal, Saw, Connector, Scrap, Screws, Wood }
+    public enum RailwayProduct { Steel, Coal, Saw, Connector, Scrap, Screws, Wood, Wrench, BoilerPart, BrakePart, CoachPart }
     public sealed class RailwayVendor : PrototypeInteractable
     {
         private TrainController train;
@@ -33,11 +33,11 @@ namespace AllAboard.Train
             if (wallet == null || (button != null && button.IsPressed) || !wallet.CanPurchase(Price)) return false;
             if (Product == RailwayProduct.Steel)
             { if (!wallet.PurchaseSteel(Price)) return false; }
-            else if(Product>=RailwayProduct.Scrap){if(!wallet.Purchase(Price))return false;wallet.AddStock(Product);}
+            else if(Product>=RailwayProduct.Scrap&&Product!=RailwayProduct.Wrench){if(!wallet.Purchase(Price))return false;wallet.AddStock(Product);}
             else
             {
                 if (Product == RailwayProduct.Coal && coal == null) return false;
-                var item = Product == RailwayProduct.Coal ? Instantiate(coal) : RailTool.Create(Product == RailwayProduct.Saw ? RailToolKind.Saw : RailToolKind.Connector, palette);
+                var item = Product == RailwayProduct.Coal ? Instantiate(coal) : Product==RailwayProduct.Wrench?MaintenanceWrench.Create(palette):RailTool.Create(Product == RailwayProduct.Saw ? RailToolKind.Saw : RailToolKind.Connector, palette);
                 UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(item, gameObject.scene);
                 item.transform.position = transform.position + Vector3.up * .7f;
                 if (!actor.TryPickup(item.GetComponent<PickupObject>())) { Destroy(item); return false; }

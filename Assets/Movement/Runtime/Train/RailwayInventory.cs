@@ -21,7 +21,7 @@ namespace AllAboard.Train
         public int Gold { get; private set; } = 500;
         public float SteelMetres { get; private set; } = 20f;
         public void BeginDay()=>BeginDay(1);
-        public void BeginDay(int day) { Day=Mathf.Max(1,day);Gold=Config.startingGold;SteelMetres=Config.startingSteelMetres;CreditDebt=Obligations=0;EntryPaid=Settled=false;DayReport=null;stock.Clear(); }
+        public void BeginDay(int day) { Day=Mathf.Max(1,day);Gold=Config.startingGold;SteelMetres=Config.startingSteelMetres;CreditDebt=Obligations=0;EntryPaid=Settled=false;DayReport=null;stock.Clear();AddStock(RailwayProduct.Scrap,2);AddStock(RailwayProduct.Screws,4);AddStock(RailwayProduct.Wood,2);AddStock(RailwayProduct.BoilerPart);AddStock(RailwayProduct.BrakePart);AddStock(RailwayProduct.CoachPart,2); }
         public bool Spend(int amount) { if (Settled || amount < 0 || Gold < amount) return false; Gold -= amount; return true; }
         public void Earn(int amount) { if (!Settled && amount > 0) Gold += amount; }
         public bool BuySteel() { if (!Spend(Config.steelPrice)) return false; SteelMetres += 5f; return true; }
@@ -29,6 +29,8 @@ namespace AllAboard.Train
         public bool Purchase(int amount)
         {if(!CanPurchase(amount))return false;int borrowed=Mathf.Max(0,amount-Gold);CreditDebt+=borrowed;Gold=Mathf.Max(0,Gold-amount);return true;}
         public bool PurchaseSteel(int price){if(!Purchase(price))return false;SteelMetres+=5f;return true;}
+        public bool SpendBlumt(int amount){if(Settled||amount<0||Blumt<amount)return false;Blumt-=amount;return true;}
+        public bool ConsumeStock(RailwayProduct product,int quantity=1){if(quantity<=0||Stock(product)<quantity)return false;stock[product]-=quantity;return true;}
         public void AddStock(RailwayProduct product,int quantity=1){stock.TryGetValue(product,out var old);stock[product]=old+Mathf.Max(0,quantity);}
         public int Stock(RailwayProduct product)=>stock.TryGetValue(product,out int count)?count:0;
         public void Charge(int amount){if(!Settled)Obligations+=Mathf.Max(0,amount);}
@@ -36,7 +38,7 @@ namespace AllAboard.Train
         public int PayPassenger(int job,RoutePlace destination,float happiness,PassengerOutcome outcome,bool special=false)
         {
             if(Settled||happiness<0f)return 0;
-            int value=outcome==PassengerOutcome.ForcedExit?Config.forcedExitReward:outcome==PassengerOutcome.Delivered&&happiness>=0f?Mathf.Max(0,job)+(special?Config.terminumReward*10:Config.Destination(destination))+Config.Tip(happiness):0;
+            int value=outcome==PassengerOutcome.ForcedExit?Config.forcedExitReward:outcome==PassengerOutcome.Delivered&&happiness>=0f?Mathf.Max(0,job)+(special?Config.terminumReward*Config.bankerMultiplier:Config.Destination(destination))+Config.Tip(happiness):0;
             Earn(value);return value;
         }
         public void ResolveCargo(int reward,CargoOutcome outcome)
@@ -54,5 +56,7 @@ namespace AllAboard.Train
             DayReport="Day complete — quota "+quota+", repairs "+paidRepairs+", +"+gain+" Blumt"+(RepairDebt>0?", next-day repair debt "+RepairDebt:"");return true;
         }
         public bool UseSteel(float metres) { if (metres <= 0f || metres > 5.001f || SteelMetres + .001f < metres) return false; SteelMetres = Mathf.Max(0f, SteelMetres - metres); return true; }
+        public void RestoreProgress(int blumt,int repairDebt){Blumt=Mathf.Max(0,blumt);RepairDebt=Mathf.Max(0,repairDebt);}
+        public void FailDay(string reason){Settled=true;DayReport=reason;}
     }
 }

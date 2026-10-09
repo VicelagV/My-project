@@ -70,10 +70,11 @@ namespace AllAboard.Train
             if (path == null || allCars == null || deltaTime <= 0f) return;
             Throttle = Mathf.Clamp01(Throttle);
             TotalWeight = Weight.Calculate(this);
-            float performance = Resources.Performance;
+            var maintenance=GetComponent<TrainMaintenance>();
+            float performance = Resources.Performance*(maintenance!=null?maintenance.BoilerPerformance:1f);
             float target = (Reversing ? -reverseSpeed : forwardSpeed) * Throttle * performance;
             float force = acceleration * referenceWeight / TotalWeight * performance;
-            if (Braking) { target = 0f; force = brakingForce * BrakeAmount * Resources.BrakeEfficiency; }
+            if (Braking) { target = 0f; force = brakingForce * BrakeAmount * Resources.BrakeEfficiency*(maintenance!=null?maintenance.BrakePerformance:1f); }
             else if (Throttle < 0.01f || performance <= 0f) { target = 0f; force = 0.35f; }
             Speed = Mathf.MoveTowards(Speed, target, force * deltaTime);
             float requested = headDistance + Speed * deltaTime;

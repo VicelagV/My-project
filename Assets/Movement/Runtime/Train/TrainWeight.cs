@@ -24,6 +24,8 @@ namespace AllAboard.Train
             }
             foreach (PickupObject item in Object.FindObjectsByType<PickupObject>(FindObjectsInactive.Exclude))
                 if (item.IsWelded && item.WeldedBody != null && train.Contains(item.WeldedBody.GetComponent<TrainCar>())) weight += item.Body.mass;
+                else if(item.GetComponent<CargoCrate>()!=null&&!item.IsHeld)foreach(var car in train.Consist){var local=car.transform.InverseTransformPoint(item.transform.position);if(Mathf.Abs(local.x)<2f&&Mathf.Abs(local.z)<4.8f&&local.y>.8f&&local.y<6f){weight+=item.Body.mass;break;}}
+            foreach(var passenger in train.GetComponentsInChildren<PassengerJourney>())if(passenger.Aboard&&!passenger.Resolved&&train.Contains(passenger.GetComponentInParent<TrainCar>()))weight+=.25f;
             return Mathf.Max(1f, weight);
         }
     }

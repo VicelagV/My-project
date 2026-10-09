@@ -39,12 +39,16 @@ The provisional derail roll rises linearly from zero at 3 m/s to certainty at 12
 
 ## Systems that are still future work
 
-See ECONOMY_PROTOTYPE.md for the implemented passenger spawning, fare payouts, capital entry fee, credit and day settlement. Replacement passenger boarding, full risk-route balancing, persistent runs, upgrades, active bandits, weapons, border inspections, severe weather effects and co-op/Steam networking remain future work. The camp and border office are environment foundations.
+See ECONOMY_PROTOTYPE.md for the implemented passenger spawning, fare payouts, capital entry fee, credit and day settlement. Passenger boarding, physical freight, happiness, day-boundary persistence, train repairs and run upgrades are now implemented; see SERVICE_AND_MAINTENANCE.md. Full risk balancing, active bandits, weapons, border inspections, severe weather effects and co-op/Steam networking remain future work. The camp and border office are environment foundations.
 
-The route still stops at day end, as requested for this prototype. No new day is automatically generated. Day accounting now runs at Terminum or the bypass return; saved-run persistence still needs its own pass.
+The route still stops at day end, as requested for this prototype. No new day is automatically generated. Day accounting now runs at Terminum or the bypass return; saved progression and a manual next-day button are now available.
 
 ## Validation
 
 Runtime and editor code is validated in a separate Unity 6000.6.4f1 checkout. The Play mode suite covers existing movement/train behavior and the new economy, settlement counts, correct tool requirements, alternating saw strokes, multi-piece repairs, hinged doors, purchase controls, derailment and landmark/skyline placement. In-engine renders show the actual generated scenes, purchase buttons, city signage, capital approach and repair before/preview/after states.
 
 The completed pass passed all 92 Play mode tests. The default seed's previews have no tunnel: generation correctly rejected its unsuitable tunnel sites rather than placing tunnels in small hills.
+
+## Village roads update — 9 October 2026
+
+Villages use a bent main street with house entry paths, a back lane, a marketplace connection and a road to the station steps. Mining/lumber yards get another road. Short boardwalks, hitching rails and a water trough replace the identical long town boardwalk slabs in villages. Road ribbons are closed meshes and stay clear of the railway.

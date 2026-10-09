@@ -1,0 +1,22 @@
+using System.Collections;
+using System.Linq;
+using AllAboard.Train;
+using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
+namespace AllAboard.Movement.Tests
+{
+    public sealed class TrainMaintenanceTests
+    {
+        private Scene scene;private ProceduralRailway world;private TrainMaintenance maintenance;private RailwayInventory bag;
+        [UnitySetUp] public IEnumerator Setup(){yield return UnityEditor.SceneManagement.EditorSceneManager.LoadSceneAsyncInPlayMode("Assets/Movement/Scenes/ProceduralRailwayPlayground.unity",new LoadSceneParameters(LoadSceneMode.Additive));yield return null;scene=SceneManager.GetSceneByPath("Assets/Movement/Scenes/ProceduralRailwayPlayground.unity");world=scene.GetRootGameObjects().Select(o=>o.GetComponent<ProceduralRailway>()).First(w=>w!=null);maintenance=world.Train.GetComponent<TrainMaintenance>();bag=world.Train.GetComponent<RailwayInventory>();}
+        [UnityTearDown] public IEnumerator Cleanup(){if(scene.IsValid()&&scene.isLoaded)yield return SceneManager.UnloadSceneAsync(scene);}
+        [Test] public void ProperWrenchRepairUsesExactlyOnePartAndRequiresAlternatingStrokes(){var part=world.Train.Cars[0].GetComponentsInChildren<TrainPart>().First(p=>p.Product==RailwayProduct.BoilerPart);part.Condition.Damage(60);var wrench=world.Train.Cars[1].GetComponentInChildren<MaintenanceWrench>();wrench.Mount(part);for(int i=0;i<8;i++)wrench.Drag(30);Assert.That(wrench.Finished,Is.False);Assert.That(bag.Stock(RailwayProduct.BoilerPart),Is.EqualTo(1));for(int i=0;i<7;i++)wrench.Drag(i%2==0?-30:30);Assert.That(wrench.Finished,Is.True);Assert.That(part.Condition.Health,Is.EqualTo(100));Assert.That(bag.Stock(RailwayProduct.BoilerPart),Is.Zero);Assert.That(part.CompleteRepair(),Is.False);}
+        [Test] public void ImprovisedRepairUsesScrapAndScrewsAndRestoresOnlyThirtyFive(){var part=world.Train.Cars[0].GetComponentsInChildren<TrainPart>().First(p=>p.Product==RailwayProduct.BrakePart);bag.ConsumeStock(RailwayProduct.BrakePart);part.Condition.Damage(70);int scrap=bag.Stock(RailwayProduct.Scrap),screws=bag.Stock(RailwayProduct.Screws);Assert.That(part.CompleteRepair(),Is.True);Assert.That(part.Condition.Health,Is.EqualTo(65));Assert.That(part.Improvised,Is.True);Assert.That(bag.Stock(RailwayProduct.Scrap),Is.EqualTo(scrap-1));Assert.That(bag.Stock(RailwayProduct.Screws),Is.EqualTo(screws-1));}
+        [Test] public void UpgradesCostBlumtAndRestoreAcrossRunSnapshots(){bag.RestoreProgress(2000,0);Assert.That(maintenance.BuyUpgrade(TrainUpgrade.SteamEfficiency),Is.True);Assert.That(bag.Blumt,Is.EqualTo(1500));Assert.That(world.Train.Resources.ConsumptionPerSecond(1,false),Is.EqualTo(.46f).Within(.0001f));var levels=maintenance.Snapshot();maintenance.Restore(new int[4]);Assert.That(world.Train.Resources.ConsumptionPerSecond(1,false),Is.EqualTo(.5f));maintenance.Restore(levels);Assert.That(maintenance.Level(TrainUpgrade.SteamEfficiency),Is.EqualTo(1));Assert.That(maintenance.Price(TrainUpgrade.SteamEfficiency),Is.EqualTo(1000));world.Train.Configure(world.Path,world.Train.Cars.ToArray(),150);Assert.That(maintenance.BuyUpgrade(TrainUpgrade.Brakes),Is.False);}
+        [Test] public void HighPressureWearsBoilerAndReducesPerformance(){world.Train.Resources.SetLevels(50,95);world.Train.Throttle=1;var part=world.Train.Cars[0].GetComponentsInChildren<TrainPart>().First(p=>p.Product==RailwayProduct.BoilerPart);maintenance.Step(100);Assert.That(part.Condition.Health,Is.EqualTo(92).Within(.01f));Assert.That(maintenance.BoilerPerformance,Is.LessThan(1));}
+        [Test] public void StorageHireCostsGoldAddsLinkedCarAndNeverDuplicatesCoal(){int coal=world.Train.Resources.CoalSupply;Assert.That(maintenance.BuyStorageCar(),Is.True);Assert.That(world.Train.ConnectedCount,Is.EqualTo(5));Assert.That(bag.Gold,Is.Zero);Assert.That(world.Train.Resources.CoalSupply,Is.EqualTo(coal));Assert.That(world.Train.Cars.Last().GetComponentsInChildren<CoalItem>().Length,Is.Zero);Assert.That(maintenance.BuyStorageCar(),Is.False);}
+        [Test] public void AboardFreightAddsWeightButGroundCratesDoNot(){var service=world.Train.GetComponent<TrainDayEconomy>();var offer=service.Cargo.Offers.First(o=>o.origin=="Redfort");service.Cargo.Accept(offer);float ground=world.Train.Weight.Calculate(world.Train);offer.crate.transform.position=world.Train.Cars[1].transform.TransformPoint(new Vector3(0,1.7f,0));Assert.That(world.Train.Weight.Calculate(world.Train),Is.EqualTo(ground+4f).Within(.01f));}
+    }
+}

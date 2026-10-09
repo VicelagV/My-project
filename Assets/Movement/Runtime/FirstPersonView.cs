@@ -114,6 +114,8 @@ namespace AllAboard.Movement
             {
                 hands.localPosition = handRestPosition;
                 hands.localRotation = Quaternion.identity;
+                var weapon=heldObject.GetComponent<AllAboard.Train.WeaponItem>();
+                if(weapon!=null){if(leftHand!=null)leftHand.position=heldObject.TransformPoint(new Vector3(-.035f,-.03f,weapon.Kind==AllAboard.Train.WeaponKind.Revolver?-.04f:.17f));if(rightHand!=null)rightHand.position=heldObject.TransformPoint(new Vector3(.035f,-.09f,-.17f));return;}
                 Vector3 side = heldObject.right * (gripHalfWidth + 0.06f);
                 if (leftHand != null) leftHand.position = heldObject.position - side;
                 if (rightHand != null) rightHand.position = heldObject.position + side;

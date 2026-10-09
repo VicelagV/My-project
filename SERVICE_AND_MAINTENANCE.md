@@ -34,7 +34,7 @@ Villages have a bent main street, back lane, house entry paths, a marketplace li
 
 Successful settlement saves the next day, Blumt, carried repair debt, seed, difficulty and upgrade levels. Starting the next day is manual in the Run page. Upgrade purchases save during Redfort preparation. Saves are written atomically and an invalid primary file falls back to its backup.
 
-This is day-boundary progression, not a mid-journey world save: loose objects, current cash and train positions are not restored. Temporary carriage hire resets each day. A failed quota or derailment ends the run. Combat, kidnapping, active hostile NPCs, multiplayer, persistent physical warehouses and full weather systems remain later game systems. The economy numbers are centralized for further playtesting; their presence is not a claim that the complete economy is finally balanced.
+This is day-boundary progression, not a mid-journey world save: loose objects, current cash and train positions are not restored. Temporary carriage hire resets each day. A failed quota or derailment ends the run. Basic weapons, healing and one hostile bandit camp are now available; see WEAPONS_AND_ENCOUNTERS.md. Kidnapping, multiplayer, persistent physical warehouses and full weather systems remain later game systems. The economy numbers are centralized for further playtesting; their presence is not a claim that the complete economy is finally balanced.
 
 ## Preview
 

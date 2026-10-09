@@ -13,7 +13,7 @@ namespace AllAboard.Train
         public void Open(){Visible=true;input?.SetMenuOpen(true);}
         public void Close(){Visible=false;input?.SetMenuOpen(false);}
         private void OnDisable(){if(Visible)Close();}
-        private void Update(){var keyboard=Keyboard.current;if(keyboard==null)return;if(keyboard.tabKey.wasPressedThisFrame){if(Visible)Close();else if(input!=null&&input.HasControl)Open();}else if(Visible&&keyboard.escapeKey.wasPressedThisFrame)Close();}
+        private void Update(){var keyboard=Keyboard.current;if(keyboard==null)return;if(keyboard.tabKey.wasPressedThisFrame){if(Visible)Close();else if(input!=null&&(input.HasControl||economy.World.DayEnded))Open();}else if(Visible&&keyboard.escapeKey.wasPressedThisFrame)Close();}
         private static Texture2D Solid(Color color){var tex=new Texture2D(1,1);tex.SetPixel(0,0,color);tex.Apply();return tex;}
         private void Styles()
         {
@@ -71,6 +71,7 @@ namespace AllAboard.Train
             foreach(var node in economy.World.Network.nodes.Where(n=>n.place==RoutePlace.Town||n.place==RoutePlace.Village||n.place==RoutePlace.Station||n.place==RoutePlace.Bluefort||n.place==RoutePlace.Terminum))
                 GUILayout.Label(node.title+"  |  "+node.family+"  |  "+node.place+"  |  destination reward "+economy.Wallet.Config.Destination(node.place)+"  |  "+(economy.World.NodeDistance(node.id)>=0?"on selected route":"off selected route"),text);
             GUILayout.Label("Stop and leave the train to change trackside switches. Hard routes offer more demand and higher-value jobs, with damaged rails to repair. Brittle and strained rails require 3 m/s or less.",small);
+            var combat=economy.World.GetComponent<CombatWorld>();if(combat!=null)foreach(var encounter in combat.Encounters)GUILayout.Label("Bandit camp - "+encounter.EdgeId+" - "+encounter.Toll+" Gold toll - "+encounter.State,text);
         }
         private void Accounts()
         {

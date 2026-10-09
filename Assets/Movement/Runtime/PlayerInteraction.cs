@@ -105,6 +105,7 @@ namespace AllAboard.Movement
                 return;
             }
             RefreshHoveredTarget();
+            if(held!=null&&input.GrabPressed&&hoveredControl==null){var weapon=held.GetComponent<AllAboard.Train.WeaponItem>();if(weapon!=null){weapon.Attack(this,cameraPivot,Time.time);return;}var medicine=held.GetComponent<AllAboard.Train.MedicalItem>();if(medicine!=null){medicine.Use(this);return;}}
             if(input.GrabPressed&&hoveredControl is AllAboard.Train.MaintenanceWrench wrench&&TryGrabWrench(wrench))return;
             if(input.GrabPressed&&hoveredControl is AllAboard.Train.RailSawControl saw&&TryGrabSaw(saw))return;
             if(input.GrabPressed&&(hoveredControl is AllAboard.Train.RailwayVendor||hoveredControl!=null&&hoveredControl.GetComponent<AllAboard.Train.TrainButton>()!=null))
@@ -182,6 +183,7 @@ namespace AllAboard.Movement
             chargeTime = 0f;
             SetHovered(null);
             view.SetHeldObject(held.transform, held.GripHalfWidth);
+            held.GetComponent<AllAboard.Train.WeaponItem>()?.SetHolder(this);
             PickedUp?.Invoke();
             return true;
         }
@@ -191,7 +193,7 @@ namespace AllAboard.Movement
             if (held == null || cameraPivot == null) return;
             Vector3 offset = cameraPivot.forward * (holdDistance + (charging ? Charge * 0.15f : 0f))
                 + cameraPivot.up * holdVerticalOffset + cameraPivot.TransformVector(view.InertiaOffset);
-            Quaternion rotation = cameraPivot.rotation * view.InertiaRotation;
+            Quaternion rotation = cameraPivot.rotation * view.InertiaRotation * (held.GetComponent<AllAboard.Train.WeaponItem>()?.PoseOffset??Quaternion.identity);
             // Shape casts do not resolve an overlapping starting volume. Clear it first,
             // including thin floor edges, before finding the nearest legal grip position.
             Vector3 origin = ResolveCarryOverlap(cameraPivot.position, rotation);
@@ -349,6 +351,7 @@ namespace AllAboard.Movement
         {
             if (held == null) return;
             var motor = GetComponent<FirstPersonMotor>();
+            held.GetComponent<AllAboard.Train.WeaponItem>()?.CancelReload();
             held.Release((motor != null ? motor.WorldVelocity : Vector3.zero) + throwVelocity);
             held = null;
             charging = false;
@@ -366,7 +369,7 @@ namespace AllAboard.Movement
                 GUI.Box(new Rect(Screen.width*.5f-90f,Screen.height*.5f+60f,180f,12f),"");
                 GUI.Box(new Rect(Screen.width*.5f-90f,Screen.height*.5f+60f,180f*grabbedSaw.Progress,12f),"");
             }
-            if (held == null && !IsUsingHandControl && dot != null && input.HasControl)
+            if ((held == null || held.GetComponent<AllAboard.Train.WeaponItem>()!=null) && !IsUsingHandControl && dot != null && input.HasControl)
                 GUI.DrawTexture(new Rect((Screen.width - 7f) * 0.5f, (Screen.height - 7f) * 0.5f, 7f, 7f), dot);
             if (showInteractionPrompts && input.HasControl && hoveredControl != null)
                 GUI.Label(new Rect(Screen.width * 0.5f - 160f, Screen.height * 0.5f + 20f, 320f, 40f), hoveredControl.Prompt);

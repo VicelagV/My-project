@@ -87,4 +87,35 @@ MonoBehaviour:
   cargoDamageScale: 3
   bankerMultiplier: 10
   wrenchPrice: 25
+  riflePrice: 350
+  shotgunPrice: 325
+  clubPrice: 40
+  hatchetPrice: 75
+  banditHealth: 80
+  banditDamage: 12
+  banditFireInterval: 1.6
+  weaponDamage:
+  - 24
+  - 45
+  - 8
+  - 20
+  - 32
+  weaponRange:
+  - 60
+  - 100
+  - 28
+  - 1.8
+  - 2.1
+  weaponCooldown:
+  - 0.35
+  - 0.9
+  - 1
+  - 0.65
+  - 0.85
+  weaponReloadSeconds:
+  - 2.2
+  - 2.8
+  - 2.4
+  - 0
+  - 0
   upgradeBasePrices: f4010000900100009001000058020000i

@@ -92,6 +92,7 @@ namespace AllAboard.Train
                 if(Network.Outgoing(node.id).Count()>1)RouteProps.Switch(generated,node,this,palette);
             }
             var economy=train.GetComponent<TrainDayEconomy>();if(economy==null)economy=train.gameObject.AddComponent<TrainDayEconomy>();if(loadedProgress!=null)economy.SetDifficulty(loadedProgress.difficulty);economy.Configure(this,palette);if(loadedProgress!=null)train.GetComponent<TrainMaintenance>().Restore(loadedProgress.upgrades);
+            var combat=GetComponent<CombatWorld>();if(combat==null)combat=gameObject.AddComponent<CombatWorld>();combat.Configure(this,palette);
             Physics.SyncTransforms();
         }
         private Vector3[] PlanPoints(out Dictionary<string,int> indices)

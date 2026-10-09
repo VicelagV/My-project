@@ -24,6 +24,11 @@ namespace AllAboard.Train
         public float bankerChance=.04f,bankerTolerance=25f,cargoDamageSpeed=4f,cargoDamageScale=3f;
         public int bankerMultiplier=10;
         public int wrenchPrice=25;
+        [Header("Combat prototype")]
+        public int riflePrice=350,shotgunPrice=325,clubPrice=40,hatchetPrice=75;
+        public float banditHealth=80,banditDamage=12,banditFireInterval=1.6f;
+        public float[] weaponDamage={24,45,8,20,32},weaponRange={60,100,28,1.8f,2.1f},weaponCooldown={.35f,.9f,1f,.65f,.85f},weaponReloadSeconds={2.2f,2.8f,2.4f,0,0};
+        public int CombatPrice(CombatPurchase item)=>item==CombatPurchase.Revolver?firearmPrice:item==CombatPurchase.Rifle?riflePrice:item==CombatPurchase.Shotgun?shotgunPrice:item==CombatPurchase.Club?clubPrice:item==CombatPurchase.Hatchet?hatchetPrice:item==CombatPurchase.Ammunition?ammoPrice*10:item==CombatPurchase.Medical?medicalPrice:recoveryPrice;
         public int[] upgradeBasePrices={500,400,400,600};
         public int Quota(int day)=>Mathf.RoundToInt(baseQuota*Mathf.Pow(quotaGrowth,Mathf.Max(0,day-1))/50f)*50;
         public int Destination(RoutePlace place)=>place==RoutePlace.Terminum?terminumReward:place==RoutePlace.Station?stationReward:place==RoutePlace.Village?villageReward:townReward;

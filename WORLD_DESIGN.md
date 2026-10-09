@@ -39,7 +39,7 @@ The provisional derail roll rises linearly from zero at 3 m/s to certainty at 12
 
 ## Systems that are still future work
 
-See ECONOMY_PROTOTYPE.md for the implemented passenger spawning, fare payouts, capital entry fee, credit and day settlement. Passenger boarding, physical freight, happiness, day-boundary persistence, train repairs and run upgrades are now implemented; see SERVICE_AND_MAINTENANCE.md. Full risk balancing, active bandits, weapons, border inspections, severe weather effects and co-op/Steam networking remain future work. The camp and border office are environment foundations.
+See ECONOMY_PROTOTYPE.md for the implemented passenger spawning, fare payouts, capital entry fee, credit and day settlement. Passenger boarding, physical freight, happiness, day-boundary persistence, train repairs and run upgrades are now implemented; see SERVICE_AND_MAINTENANCE.md. A first bandit encounter, weapons and medical supplies are implemented; see WEAPONS_AND_ENCOUNTERS.md. Full risk balancing, border inspections, severe weather effects and co-op/Steam networking remain future work. The camp and border office are environment foundations.
 
 The route still stops at day end, as requested for this prototype. No new day is automatically generated. Day accounting now runs at Terminum or the bypass return; saved progression and a manual next-day button are now available.
 

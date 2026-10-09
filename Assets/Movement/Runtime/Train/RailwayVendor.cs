@@ -2,7 +2,7 @@ using AllAboard.Movement;
 using UnityEngine;
 namespace AllAboard.Train
 {
-    public enum RailwayProduct { Steel, Coal, Saw, Connector, Scrap, Screws, Wood, Wrench, BoilerPart, BrakePart, CoachPart }
+    public enum RailwayProduct { Steel, Coal, Saw, Connector, Scrap, Screws, Wood, Wrench, BoilerPart, BrakePart, CoachPart, Ammunition }
     public sealed class RailwayVendor : PrototypeInteractable
     {
         private TrainController train;

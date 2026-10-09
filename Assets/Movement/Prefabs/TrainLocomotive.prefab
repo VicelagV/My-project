@@ -28373,6 +28373,7 @@ GameObject:
   - component: {fileID: 4092670924834927986}
   - component: {fileID: 2200471920191182182}
   - component: {fileID: 6744073901048880350}
+  - component: {fileID: 1052879939537565560}
   m_Layer: 0
   m_Name: TrainLocomotive
   m_TagString: Untagged
@@ -28486,6 +28487,25 @@ MonoBehaviour:
   owner: {fileID: 0}
   front: {fileID: 0}
   rear: {fileID: 0}
+--- !u!114 &1052879939537565560
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5886145814351341244}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba5c955e59f688145bbd61c6b17def42, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: AllAboard.Movement::AllAboard.Train.TrainCraftsmanship
+  body: {fileID: 2100000, guid: 19d5869ceb733ac4f82d05dd4ecec0a2, type: 2}
+  brass: {fileID: 2100000, guid: 5e41efb525df7b44bbcf0598075b1b51, type: 2}
+  steel: {fileID: 2100000, guid: 6c6509a53257759419206ad3af7dd836, type: 2}
+  wood: {fileID: 2100000, guid: 0888c1afb21b96347a2d80a269cc4206, type: 2}
+  leather: {fileID: 2100000, guid: 6c68e179bba028d49b5b126d7d838426, type: 2}
+  ivory: {fileID: 2100000, guid: 060fe53c92540384ebf1f556ddc8ac43, type: 2}
+  red: {fileID: 2100000, guid: eca8286f80c50fb46b5dad41d9c47c6b, type: 2}
 --- !u!1 &5887198391735056381
 GameObject:
   m_ObjectHideFlags: 0

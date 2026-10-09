@@ -47,6 +47,7 @@ namespace AllAboard.Train
             Box(station,"Clock Minute Hand",new Vector3(6.62f,clockY+.11f,-2f),new Vector3(.02f,.25f,.035f),m[5]);
             Box(station,"Clock Hour Hand",new Vector3(6.62f,clockY,-1.91f),new Vector3(.02f,.035f,.2f),m[5]);
             foreach(float z in new[]{-28f,8f,26f})Lamp(station,new Vector3(6f,1.15f,z),m);
+            BuildingCraftsmanship.Station(station,m,node.place==RoutePlace.Terminum);
             if(node.place==RoutePlace.Station)
             {Sign(station,"PASSENGER DROP-OFF\nFARE: TERMINUM x5",new Vector3(5.8f,2.6f,-12f),m,3.6f);return;}
             bool city=node.place==RoutePlace.Redfort||node.place==RoutePlace.Bluefort||node.place==RoutePlace.Terminum;
@@ -146,6 +147,7 @@ namespace AllAboard.Train
                 Box(house,"Bay Window Hood",new Vector3(width*.3f,2.7f,-3.85f),new Vector3(1.95f,.18f,.85f),roof);
                 for(int i=0;i<5;i++)Box(house,"Stone Course",new Vector3(0f,.85f+i*.65f,-3.61f),new Vector3(width,.025f,.03f),m[1]);
             }
+            BuildingCraftsmanship.House(house,width,height,pitch,style,abandoned,m);
             WorldArtAssets.BatchBuilding(house);
         }
         private static void Shop(Transform p,Vector3 at,int index,Material[] m,TrainController train,GameObject coal,bool closed,RoutePlace place)
@@ -159,6 +161,7 @@ namespace AllAboard.Train
             RouteProps.Board(shop,"SALVAGE BOUGHT HERE",new Vector3(0f,2.55f,-.57f),new Vector3(2.9f,.2f,.04f),m,Quaternion.identity);
             RouteProps.Board(shop,closed?"CLOSED":index>=2?"ODDS & ENDS - SALE":index%2==0?"RAIL & REPAIRS":"COAL & SUPPLIES",new Vector3(0f,2.95f,-.57f),new Vector3(3.2f,.3f,.08f),m,Quaternion.identity);
             for(int i=0;i<3;i++)Box(shop,index%2==0?"Steel Stock":"Coal Stock",new Vector3(-.9f+i*.8f,1.5f,0f),new Vector3(.55f,.3f,.65f),index%2==0?m[3]:m[5]);
+            BuildingCraftsmanship.Stall(shop,m);
             if(!closed)
                 for(int i=0;i<(index<2?11:4);i++)
                 {

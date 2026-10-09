@@ -46,6 +46,7 @@ namespace AllAboard.Train
                 RouteProps.Box(item.transform,"Connector Steel Spine",new Vector3(0f,.07f,0f),new Vector3(.5f,.025f,.13f),m[3],false);
                 for(int i=0;i<5;i++)RouteProps.Box(item.transform,"Connector Grip Band",new Vector3(-.12f+i*.06f,0f,0f),new Vector3(.018f,.135f,.125f),m[3],false);
             }
+            EquipmentCraftsmanship.Tool(item.transform,m,kind==RailToolKind.Saw);
             var outline=RouteProps.Box(item.transform,"Tool Hover Outline",Vector3.zero,box.size,m[9],false).GetComponent<Renderer>();
             item.GetComponent<PickupObject>().Configure(outline); outline.enabled=false;
             return item;

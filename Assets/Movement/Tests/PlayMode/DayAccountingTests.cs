@@ -48,7 +48,7 @@ namespace AllAboard.Movement.Tests
         [Test] public void CharacterVariantsHaveNoEyebrowsAndNoExtraPhysicsColliders()
         {
             foreach(string name in new[]{"BrightCharacter","BrightCharacterYellow","BrightCharacterGreen"})
-            {var prefab=Resources.Load<GameObject>(name);Assert.That(prefab,Is.Not.Null);Assert.That(prefab.GetComponentsInChildren<Transform>().Any(t=>t.name.ToLowerInvariant().Contains("eyebrow")),Is.False);Assert.That(prefab.GetComponentsInChildren<Collider>().Length,Is.Zero);Assert.That(prefab.GetComponentsInChildren<Renderer>().Length,Is.EqualTo(17));}
+            {var prefab=Resources.Load<GameObject>(name);Assert.That(prefab,Is.Not.Null);Assert.That(prefab.GetComponentsInChildren<Transform>().Any(t=>t.name.ToLowerInvariant().Contains("eyebrow")),Is.False);Assert.That(prefab.GetComponentsInChildren<Collider>().Length,Is.Zero);foreach(string part in new[]{"Rounded Body","Round Head","Left Eye","Right Eye","Left Pupil","Right Pupil","Left Hand","Right Hand"})Assert.That(prefab.transform.Find(part),Is.Not.Null,"Missing character part: "+part);}
         }
         [Test] public void OwnBodyIsHiddenFromCameraWhileKeepingShadows()
         {

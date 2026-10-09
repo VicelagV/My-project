@@ -55,6 +55,7 @@ namespace AllAboard.Train
                     for(int i=0;i<12;i++)Box(root,"Water Ripple",new Vector3(-80f+i*14f,-1.38f,(i%3-1)*10f),new Vector3(5f,.01f,.14f),m[8]);
                 }
                 else foreach(float side in new[]{-1f,1f})Box(root,"Canyon Cliff",new Vector3(side*90f,-1f,0f),new Vector3(12f,12f,85f),m[1]);
+                LandmarkCraftsmanship.Bridge(root,m);
                 return;
             }
             if(plan.kind==LandmarkKind.Tunnel)
@@ -70,6 +71,7 @@ namespace AllAboard.Train
                     PortalArch.Build(facing,0f,m[8]);
                     for(int i=1;i<12;i++){float angle=i*15f;var joint=Box(facing,"Arch Mortar Joint",new Vector3(Mathf.Cos(angle*Mathf.Deg2Rad)*4.425f,2f+Mathf.Sin(angle*Mathf.Deg2Rad)*4.425f,-.845f),new Vector3(.025f,.73f,.025f),m[2]);joint.transform.localRotation=Quaternion.Euler(0f,0f,angle-90f);}
                 }
+                LandmarkCraftsmanship.Tunnel(root,m);
                 return;
             }
             var site=new GameObject("Accessible Landmark").transform;site.SetParent(root,false);site.localPosition=new Vector3(plan.kind==LandmarkKind.Checkpoint?10f:28f,0f,0f);
@@ -123,6 +125,7 @@ namespace AllAboard.Train
                 for(int i=0;i<8;i++){float angle=i*Mathf.PI/4f;Box(site,"Camp Fire Stone",new Vector3(Mathf.Cos(angle)*.8f,.12f,-8f+Mathf.Sin(angle)*.8f),new Vector3(.35f,.24f,.35f),m[1]);}
                 foreach(float side in new[]{-1f,1f}){var log=Box(site,"Firewood",new Vector3(0f,.13f,-8f+side*.16f),new Vector3(1f,.18f,.18f),m[2]);log.transform.localRotation=Quaternion.Euler(0f,side*28f,0f);}
             }
+            LandmarkCraftsmanship.WorkSite(site,plan.kind,m);
             if(plan.kind!=LandmarkKind.Checkpoint)
                 for(int i=0;i<2;i++)Loot(site,new Vector3(-1f+i*2f,.5f,1f),40+i*20,m);
         }
@@ -144,6 +147,7 @@ namespace AllAboard.Train
             Box(shed,"Entrance Header",new Vector3(0f,2.65f,-3.14f),new Vector3(opening+.2f,.16f,.16f),m[8]);
             Box(shed,"Shed Step",new Vector3(0f,.06f,-3.25f),new Vector3(opening,.12f,.6f),m[1],true);
             for(float x=-width*.5f+.4f;x<width*.5f;x+=.55f)Box(shed,"Shed Cladding Seam",new Vector3(x,height*.5f,3.11f),new Vector3(.025f,height,.025f),m[8]);
+            LandmarkCraftsmanship.Shed(shed,width,height,m);
         }
         private static void Fence(Transform p,Vector3 at,float length,Material[] m)
         {for(float x=0f;x<length;x+=2f)Box(p,"Fence Post",at+new Vector3(x,.65f,0f),new Vector3(.12f,1.3f,.12f),m[2]);foreach(float y in new[]{.5f,1f})Box(p,"Fence Rail",at+new Vector3(length*.5f,y,0f),new Vector3(length,.1f,.1f),m[2]);}
@@ -154,6 +158,7 @@ namespace AllAboard.Train
             var pickup=item.AddComponent<AllAboard.Movement.PickupObject>();item.AddComponent<LootCargo>().Value=value;
             Box(item.transform,"Cargo Wood",Vector3.zero,Vector3.one*.65f,m[2]);
             foreach(float x in new[]{-.24f,.24f})Box(item.transform,"Cargo Binding",new Vector3(x,0f,0f),new Vector3(.055f,.67f,.67f),m[3]);
+            CraftGeometry.Crate(item.transform,Vector3.one*.65f,m);
             var outline=Box(item.transform,"Cargo Outline",Vector3.zero,Vector3.one*.65f,m[9]).GetComponent<Renderer>();pickup.Configure(outline);outline.enabled=false;
         }
     }

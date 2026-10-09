@@ -36,6 +36,7 @@ namespace AllAboard.Train
             var m=Economy.Palette;
             RouteProps.Box(obj.transform,"Wooden Crate",Vector3.zero,new Vector3(.68f,.6f,.68f),m[2],false);
             foreach(float x in new[]{-.25f,.25f})RouteProps.Box(obj.transform,"Crate Iron Strap",new Vector3(x,0f,0f),new Vector3(.055f,.63f,.71f),m[3],false);
+            CraftGeometry.Crate(obj.transform,new Vector3(.68f,.6f,.68f),m);
             var seal=RouteProps.Box(obj.transform,"Contract Seal",new Vector3(0f,.12f,-.355f),new Vector3(.19f,.14f,.025f),m[6],false).GetComponent<Renderer>();
             RouteProps.Board(obj.transform,Economy.DestinationTitle(offer.destination),new Vector3(0f,-.11f,-.36f),new Vector3(.5f,.16f,.025f),m,Quaternion.identity);
             var outline=RouteProps.Box(obj.transform,"Cargo Hover Outline",Vector3.zero,new Vector3(.75f,.67f,.75f),m[9],false).GetComponent<Renderer>();pickup.Configure(outline);outline.enabled=false;

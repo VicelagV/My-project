@@ -43,6 +43,7 @@ namespace AllAboard.Train
                 foreach(float x in new[]{-16.15f,16.15f})Box(building,"Side Roof Cornice",new Vector3(x,height+.12f,0f),new Vector3(.3f,.3f,16.8f),stone);
                 Box(building,"Rear Roof Cornice",new Vector3(0f,height+.12f,8.15f),new Vector3(32.8f,.3f,.3f),stone);
                 foreach(float x in new[]{-15.8f,15.8f})Box(building,"Rain Downpipe",new Vector3(x,height*.5f,-8.4f),new Vector3(.1f,height,.1f),m[5]);
+                BuildingCraftsmanship.Terrace(building,height,stone,brick,m);
                 var rear=Object.Instantiate(building.gameObject,root).transform;rear.name="Capital Rear Terrace";rear.localPosition=new Vector3(side*(145f+(row%3)*14f),0f,(side<0f?-440f:-515f)+row*57f);rear.localScale=new Vector3(1f,1.2f,1f);
                 WorldArtAssets.BatchBuilding(building);WorldArtAssets.BatchBuilding(rear);
             }

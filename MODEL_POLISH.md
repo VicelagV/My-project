@@ -24,3 +24,8 @@ Unity 6000.6.4f1 in a separate validation checkout. Play mode checks cover exist
 All 106 Play mode tests passed. The final cosmetic plaque support was then compiled and inspected with the in-engine preview pass.
 
 The model audit covers the locomotive, tender, passenger coaches, controls, repair gear, all six frontier house forms, stations, capital buildings, market stalls and landmark structures. Doorways, glass windows, the ladder hatch, tunnel openings and ruined walls are intentional openings. Procedural terrain across every possible seed cannot be exhaustively previewed; previews use the existing playable seed and an isolated tunnel-model inspection.
+
+
+## Further detail pass
+
+See DETAILED_MODELS_AND_TERRAIN.md for the subsequent train, equipment, building and terrain refinement and its new in-engine preview gallery.

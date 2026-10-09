@@ -12,7 +12,9 @@ namespace AllAboard.Editor
     {
         private const string Root="Assets/Movement/Resources/";
         [MenuItem("All Aboard/Build Bright Player Character")]
-        public static void Apply()
+        public static void Apply()=>Build(true);
+        public static void RefineModels()=>Build(false);
+        private static void Build(bool updateScenes)
         {
             Directory.CreateDirectory(Root);AssetDatabase.Refresh();
             var blue=Paint("CharacterBlue",new Color(.04f,.55f,1f));
@@ -35,6 +37,8 @@ namespace AllAboard.Editor
                 {
                     Ball(root.transform,side<0?"Left Eye":"Right Eye",new Vector3(side*.145f,1.43f,.255f),new Vector3(.285f,.3f,.14f),white);
                     Ball(root.transform,side<0?"Left Pupil":"Right Pupil",new Vector3(side*.145f,1.43f,.323f),new Vector3(.16f,.18f,.045f),black);
+                    Ball(root.transform,"Eye Catchlight",new Vector3(side*.145f-.028f,1.477f,.349f),new Vector3(.045f,.05f,.018f),white);
+                    Ball(root.transform,"Eye Small Catchlight",new Vector3(side*.145f+.024f,1.402f,.349f),new Vector3(.018f,.021f,.012f),white);
                     var hand=new GameObject(side<0?"Left Hand":"Right Hand").transform;hand.SetParent(root.transform,false);hand.localPosition=new Vector3(side*.49f,.98f,.035f);
                     Ball(hand,"Palm",Vector3.zero,new Vector3(.23f,.19f,.15f),paint);
                     for(int i=0;i<3;i++)
@@ -47,6 +51,7 @@ namespace AllAboard.Editor
             }
             if(AssetDatabase.LoadAssetAtPath<EconomyConfig>(Root+"EconomyDefaults.asset")==null)
                 AssetDatabase.CreateAsset(ScriptableObject.CreateInstance<EconomyConfig>(),Root+"EconomyDefaults.asset");
+            if(!updateScenes){AssetDatabase.SaveAssets();return;}
             const string playerPath="Assets/Movement/Prefabs/PrototypePlayer.prefab";
             var player=PrefabUtility.LoadPrefabContents(playerPath);
             if(player.GetComponent<PlayerAvatar>()==null)player.AddComponent<PlayerAvatar>();

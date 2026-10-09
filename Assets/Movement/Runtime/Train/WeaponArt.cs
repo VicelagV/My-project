@@ -24,6 +24,10 @@ namespace AllAboard.Train
     Box("Wooden Handle",new Vector3(0,0,-.05f),new Vector3(.09f,.09f,.62f),2);Box("Handle Grip",new Vector3(0,0,-.25f),new Vector3(.11f,.11f,.2f),7);
     if(kind==WeaponKind.Hatchet){Box("Hatchet Steel Head",new Vector3(.07f,0,.27f),new Vector3(.26f,.075f,.16f),3);Box("Hatchet Cutting Edge",new Vector3(.205f,0,.27f),new Vector3(.015f,.09f,.18f),8);}else{Round("Club Head",new Vector3(0,0,.18f),new Vector3(.18f,.14f,.18f),2);Round("Club Iron Band",new Vector3(0,0,.26f),new Vector3(.19f,.025f,.19f),3);}
    }
+   var bevel=Resources.Load<Mesh>("CraftBevelBox");
+   if(bevel!=null)foreach(var part in root.GetComponentsInChildren<MeshFilter>())if(part.name=="Receiver"||part.name=="Wooden Grip"||part.name=="Wooden Stock"||part.name=="Wooden Foregrip"||part.name=="Hatchet Steel Head"||part.name=="Handle Grip")part.sharedMesh=bevel;
+   if(kind==WeaponKind.Revolver)root.transform.Find("Receiver").localScale=new Vector3(.12f,.055f,.22f);
+   EquipmentCraftsmanship.Weapon(root.transform,kind,length,m);
    var muzzle=new GameObject("Muzzle").transform;muzzle.SetParent(root.transform,false);muzzle.localPosition=new Vector3(0,.07f,tip+.06f);var flash=RouteProps.Box(root.transform,"Muzzle Flash",muzzle.localPosition,new Vector3(.14f,.14f,.17f),m[8],false).GetComponent<Renderer>();
    var outline=RouteProps.Box(root.transform,"Weapon Hover Outline",Vector3.zero,collider.size*1.04f,m[9],false).GetComponent<Renderer>();pickup.Configure(outline);outline.enabled=false;root.AddComponent<WeaponItem>().Configure(kind,bag,muzzle,flash);return root;
   }

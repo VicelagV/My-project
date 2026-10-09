@@ -413,6 +413,7 @@ GameObject:
   - component: {fileID: 231552438659000129}
   - component: {fileID: 87740943129043701}
   - component: {fileID: 4168475615934923259}
+  - component: {fileID: 3768501293805568094}
   m_Layer: 0
   m_Name: PrototypePlayer
   m_TagString: Untagged
@@ -540,6 +541,7 @@ MonoBehaviour:
   tapDuration: 0.18
   minimumThrowSpeed: 3
   maximumThrowSpeed: 12
+  showInteractionPrompts: 1
 --- !u!82 &87740943129043701
 AudioSource:
   m_ObjectHideFlags: 0
@@ -651,6 +653,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: AllAboard.Movement::AllAboard.Movement.PlayerAudioFeedback
   sounds: {fileID: 11400000, guid: b229f24a1ef120a4195fabeae9f751ec, type: 2}
   distancePerStep: 1.8
+--- !u!114 &3768501293805568094
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5411630194236711728}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04ab0483bd8c416cb5e593159f41fc60, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: AllAboard.Movement::AllAboard.Movement.PlayerAvatar
+  modelPrefab: {fileID: 0}
 --- !u!1 &6458860426170934589
 GameObject:
   m_ObjectHideFlags: 0

@@ -25,6 +25,7 @@ namespace AllAboard.Train
             {car.Body.position+=car.Body.rotation*Vector3.right*.65f;car.Body.rotation*=Quaternion.Euler(0f,0f,9f);}
         }
         public void StopJourney(){journeyStopped=true;Speed=0f;Throttle=0f;Braking=true;}
+        public void HoldAtCheckpoint(){Speed=0f;Throttle=0f;Braking=true;}
         private TrainResources resources;
         private TrainWeight weight;
         public float Speed { get; private set; }

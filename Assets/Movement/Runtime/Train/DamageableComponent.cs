@@ -7,6 +7,7 @@ namespace AllAboard.Train
         [SerializeField, Min(1f)] private float maximumHealth = 100f;
         [SerializeField] private float health = 100f;
         public float Health => health;
+        public float DamageFraction=>1f-health/maximumHealth;
         public bool IsBroken => health <= 0f;
         public void Damage(float amount) { health = Mathf.Clamp(health - Mathf.Max(0f, amount), 0f, maximumHealth); }
     }

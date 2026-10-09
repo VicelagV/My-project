@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8924b43e8b54f2fbe959b8034bedcc1, type: 3}
+  m_Name: EconomyDefaults
+  m_EditorClassIdentifier: AllAboard.Movement::AllAboard.Train.EconomyConfig
+  startingGold: 500
+  startingCoal: 10
+  startingSteelMetres: 20
+  baseQuota: 1500
+  entryFee: 1000
+  creditLimit: 100
+  steelPrice: 50
+  coalPrice: 20
+  sawPrice: 25
+  connectorPrice: 15
+  quotaGrowth: 1.18
+  villageMultiplier: 1.2
+  merchantDiscount: 0.15
+  scrapPrice: 30
+  screwsPrice: 15
+  woodPrice: 20
+  medicalPrice: 60
+  recoveryPrice: 150
+  firearmPrice: 300
+  ammoPrice: 5
+  componentPrice: 150
+  locomotiveComponentPrice: 275
+  storageCarriagePrice: 500
+  terminumReward: 100
+  townReward: 200
+  villageReward: 300
+  stationReward: 500
+  forcedExitReward: 50
+  minimumTip: 0
+  maximumTip: 100
+  passengerCapacity: 16
+  normalStartingPassengers: 14
+  mediumStartingPassengers: 12
+  hardStartingPassengers: 10
+  lowJob: {x: 25, y: 50}
+  normalJob: {x: 50, y: 80}
+  valuableJob: {x: 80, y: 120}
+  cosmeticRepairMin: 20
+  cosmeticRepairMax: 75
+  componentRepairMin: 75
+  componentRepairMax: 200
+  majorRepairMin: 200
+  majorRepairMax: 400
+  minorFine: {x: 50, y: 150}
+  severeFine: {x: 200, y: 400}
+  banditToll: {x: 100, y: 300}
+  cargoReward: {x: 300, y: 700}
+  damagedCargoMultiplier: 0.75
+  contractPenaltyFraction: 0.35
+  relevantSaleMultiplier: 0.6
+  irrelevantSaleMultiplier: 0.3
+  normalBlumt: 1
+  mediumBlumt: 1.25
+  hardBlumt: 1.5
+  freePrototypeCoal: 1

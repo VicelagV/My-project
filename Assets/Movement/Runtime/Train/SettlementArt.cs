@@ -73,7 +73,7 @@ namespace AllAboard.Train
             var market=new GameObject("Marketplace").transform;market.SetParent(station,false);market.localPosition=new Vector3(28f,0f,58f);
             Box(market,"Market Boardwalk",new Vector3(0f,.2f,0f),new Vector3(18f,.4f,14f),m[2],true);
             Box(market,"Market Entry Step",new Vector3(0f,.1f,-7.3f),new Vector3(6f,.2f,.6f),m[2],true);
-            for(int i=0;i<shops;i++)Shop(market,new Vector3(-6f+i*4f,.4f,1f),i,m,train,coal,node.settlement==SettlementKind.Abandoned);
+            for(int i=0;i<shops;i++)Shop(market,new Vector3(-6f+i*4f,.4f,1f),i,m,train,coal,node.settlement==SettlementKind.Abandoned,node.place);
             if(node.settlement==SettlementKind.Mining)
             {Box(station,"Ore Bunker",new Vector3(82f,1.4f,28f),new Vector3(10f,2.8f,8f),m[2]);Box(station,"Mine Headframe",new Vector3(87f,6f,38f),new Vector3(1f,12f,1f),m[2]);}
             if(node.settlement==SettlementKind.Lumber)for(int i=0;i<5;i++)Box(station,"Timber Stack",new Vector3(85f,.5f+i*.22f,25f),new Vector3(11f,.2f,3f),m[2]);
@@ -145,7 +145,7 @@ namespace AllAboard.Train
             }
             WorldArtAssets.BatchBuilding(house);
         }
-        private static void Shop(Transform p,Vector3 at,int index,Material[] m,TrainController train,GameObject coal,bool closed)
+        private static void Shop(Transform p,Vector3 at,int index,Material[] m,TrainController train,GameObject coal,bool closed,RoutePlace place)
         {
             var shop=new GameObject("Vendor Shop").transform;shop.SetParent(p,false);shop.localPosition=at;
             Box(shop,"Shop Back",new Vector3(0f,1.7f,2f),new Vector3(3.5f,3.4f,.15f),m[2]);
@@ -153,15 +153,19 @@ namespace AllAboard.Train
             Box(shop,"Canvas Shop Awning",new Vector3(0f,3.3f,.8f),new Vector3(3.9f,.18f,3f),index%2==0?m[7]:m[4]);
             var counter=Box(shop,"Shop Counter",new Vector3(0f,.62f,0f),new Vector3(3.3f,1.24f,1f),m[2],true);
             RouteProps.Board(shop,"SALVAGE BOUGHT HERE",new Vector3(0f,1.9f,1.7f),new Vector3(2.9f,.28f,.04f),m,Quaternion.identity);
-            RouteProps.Board(shop,closed?"CLOSED":index%2==0?"RAIL & REPAIRS":"COAL & SUPPLIES",new Vector3(0f,2.5f,1.7f),new Vector3(3.2f,.5f,.08f),m,Quaternion.identity);
+            RouteProps.Board(shop,closed?"CLOSED":index>=2?"ODDS & ENDS - SALE":index%2==0?"RAIL & REPAIRS":"COAL & SUPPLIES",new Vector3(0f,2.5f,1.7f),new Vector3(3.2f,.5f,.08f),m,Quaternion.identity);
             for(int i=0;i<3;i++)Box(shop,index%2==0?"Steel Stock":"Coal Stock",new Vector3(-.9f+i*.8f,1.5f,0f),new Vector3(.55f,.3f,.65f),index%2==0?m[3]:m[5]);
             if(!closed)
                 for(int i=0;i<4;i++)
                 {
-                    var product=(RailwayProduct)i;
-                    string label=i==0?"STEEL 5m\n50 GOLD":i==1?"COAL\n20 GOLD":i==2?"SAW\n25 GOLD":"CONNECTOR\n15 GOLD";
+                    var products=index>=2?new[]{RailwayProduct.Scrap,RailwayProduct.Screws,RailwayProduct.Wood,RailwayProduct.Steel,RailwayProduct.Coal,RailwayProduct.Saw,RailwayProduct.Connector}.OrderBy(x=>WorldArtAssets.Hash(p.parent.name+at.ToString()+x)).Take(4).ToArray():new[]{RailwayProduct.Steel,RailwayProduct.Coal,RailwayProduct.Saw,RailwayProduct.Connector};
+                    var product=products[i];
+                    var config=train.GetComponent<RailwayInventory>().Config;
+                    float factor=place==RoutePlace.Village?config.villageMultiplier:1f;
+                    if(index>=2)factor*=1f-config.merchantDiscount;
+                    string label=(product==RailwayProduct.Steel?"STEEL 5m":product.ToString().ToUpperInvariant())+"\n"+Mathf.RoundToInt(config.ProductPrice(product)*factor)+" GOLD";
                     var cap=WorldButtonArt.Create(shop,new Vector3(-1.2f+i*.8f,.86f,-.56f),label,m);
-                    cap.AddComponent<RailwayVendor>().Configure(train,product,coal,m);
+                    var vendor=cap.AddComponent<RailwayVendor>();vendor.Configure(train,product,coal,m);vendor.SetPriceMultiplier(factor);vendor.SetSpecialization(index%2==0?SalvageCategory.RailParts:SalvageCategory.Fuel,index>=2);
                 }
         }
         private static void Lamp(Transform p,Vector3 at,Material[] m)

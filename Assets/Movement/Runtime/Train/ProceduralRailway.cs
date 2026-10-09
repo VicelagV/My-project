@@ -33,9 +33,12 @@ namespace AllAboard.Train
         {
             float end=NodeDistance("Return");
             if(end<0f||train.HeadDistance<end||DayEnded)return;
-            DayEnded=true;DayEndReason="Day complete";train.StopJourney();
+            var economy=train.GetComponent<TrainDayEconomy>();
+            if(economy!=null)economy.Finish(false);
+            else FinishEconomicDay("Day complete");
         }
         private void FixedUpdate(){CheckDayEnd();}
+        public void FinishEconomicDay(string report){if(DayEnded)return;DayEnded=true;DayEndReason=report;train.StopJourney();}
         public void Configure(TrainController owner,RailPath path,GameObject coal,Material[] materials,int baseSeed=8008,float minutes=15f)
         {train=owner;railPath=path;coalPrefab=coal;palette=materials;seed=baseSeed;driveMinutes=minutes;}
         private void Awake(){if(train!=null&&railPath!=null&&palette!=null&&palette.Length>=10)BuildInitialWorld();}
@@ -49,7 +52,7 @@ namespace AllAboard.Train
             float baseLength=probe.Length-240f;if(Application.isPlaying)Destroy(measurement);else DestroyImmediate(measurement);
             Network=RouteNetwork.Generate(DailySeed,driveMinutes*60f*12f/baseLength);
             railPath.Configure(PlanPoints(out nodeIndices));train.Configure(railPath,train.Cars.ToArray(),80f);
-            var inventory=train.GetComponent<RailwayInventory>();if(inventory==null)inventory=train.gameObject.AddComponent<RailwayInventory>();inventory.BeginDay();
+            var inventory=train.GetComponent<RailwayInventory>();if(inventory==null)inventory=train.gameObject.AddComponent<RailwayInventory>();inventory.BeginDay(day);
             generated=new GameObject("Generated Route World").transform;generated.SetParent(transform,false);
             if(!Application.isPlaying)generated.gameObject.hideFlags=HideFlags.DontSaveInEditor;
             Geometry=generated.gameObject.AddComponent<RouteGeometry>();Geometry.Build(Network,palette[0],palette[1],palette[2],palette[3],palette[4]);
@@ -65,6 +68,7 @@ namespace AllAboard.Train
                 if(RouteGeometry.IsStop(node.place))RouteProps.Station(generated,node,palette,train,coalPrefab);
                 if(Network.Outgoing(node.id).Count()>1)RouteProps.Switch(generated,node,this,palette);
             }
+            var economy=train.GetComponent<TrainDayEconomy>();if(economy==null)economy=train.gameObject.AddComponent<TrainDayEconomy>();economy.Configure(this);
             Physics.SyncTransforms();
         }
         private Vector3[] PlanPoints(out Dictionary<string,int> indices)

@@ -14,7 +14,7 @@ The three rail damage types are brittle, strained and missing. Brittle and strai
 - Terminum has 32 masonry terrace blocks in offset rows, streets, promenades, a square and a clock-tower station hall. Its skyline begins before arrival at the station.
 - Plains, forest, desert/cactus, substantial hills and mountains; river bridges, canyons, farms, mines, logging camps, ruins, a border office and a camp location. Tunnels only appear at eligible straight stretches within large mountain regions, away from settlements; some seeds have no tunnel. Their mountain shell is at least 120 m high. Terrain is carved beneath bridge crossings and the deck remains walkable.
 - Physical salvage crates at plausible supply/loot locations. Carry a crate to a vendor and press a purchase button to sell it.
-- Every open vendor sells steel, coal, a saw and a connector through four labelled physical purchase buttons. M1 or E presses a button; a brief press animation prevents duplicate purchases and brings the hand to it. Purchases spawn handheld goods when appropriate.
+- Standard vendors sell steel, coal, a saw and a connector through four labelled physical purchase buttons. Extra all-purpose town shops offer discounted mixed stock. M1 or E presses a button; a brief press animation prevents duplicate purchases and brings the hand to it. Purchases spawn handheld goods when appropriate.
 - Each day starts with 500 Gold and 20 metres of steel. The saw and connector are in the coal wagon's labelled repair locker. Its plaque shows the wallet and remaining steel.
 - Look at a strained rail's marked mount while holding the saw and press E to place it. Hold M1 on the saw and alternate forward/backward mouse strokes; eight alternating strokes complete a cut. E takes the saw back. Repeat for the other rail.
 - Hold the connector and press E on a missing rail's starting endpoint. The mint-green preview shows the next piece, up to five metres long. Walk to the far endpoint and press E to commit it. Steel is spent only on a successful connection. Repeat from the new starting endpoint for the remainder and then repair the second rail. Dropping the connector cancels its preview.
@@ -39,9 +39,9 @@ The provisional derail roll rises linearly from zero at 3 m/s to certainty at 12
 
 ## Systems that are still future work
 
-Passenger spawning/boarding, actual fare payouts, capital entry fees, quota accounting, persistent runs, upgrades, active bandits, weapons, border inspections, severe weather effects and co-op/Steam networking are not implemented by these locations or their signs. The five-times isolated-stop fare is recorded as station metadata for the passenger system. The camp and border office are environment foundations. This pass does not pretend that a decorative camp has combat AI or that a fare sign pays passengers automatically.
+See ECONOMY_PROTOTYPE.md for the implemented passenger spawning, fare payouts, capital entry fee, credit and day settlement. Replacement passenger boarding, full risk-route balancing, persistent runs, upgrades, active bandits, weapons, border inspections, severe weather effects and co-op/Steam networking remain future work. The camp and border office are environment foundations.
 
-The route still stops at day end, as requested for this prototype. No new day is automatically generated. The full design dialogue describes later day accounting and run persistence; those will need their own implementation pass.
+The route still stops at day end, as requested for this prototype. No new day is automatically generated. Day accounting now runs at Terminum or the bypass return; saved-run persistence still needs its own pass.
 
 ## Validation
 

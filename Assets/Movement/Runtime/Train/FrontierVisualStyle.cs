@@ -11,6 +11,7 @@ namespace AllAboard.Train
     {
         private readonly Dictionary<Material,Material> copies = new Dictionary<Material,Material>();
         private readonly HashSet<Material> owned = new HashSet<Material>();
+        private Material[] currentPalette;
         private VolumeProfile profile;
         private Material sky, oldSkybox;
         private bool prepared, oldFog;
@@ -69,13 +70,16 @@ namespace AllAboard.Train
                 var volume=gameObject.AddComponent<Volume>();volume.isGlobal=true;volume.priority=5;volume.sharedProfile=profile;
                 if(!Application.isPlaying){profile.hideFlags=HideFlags.DontSaveInEditor;volume.hideFlags=HideFlags.DontSaveInEditor;}
             }
-            return styledPalette;
+            currentPalette=styledPalette;return styledPalette;
         }
         public void ApplyTrain(TrainController train)
         {
             foreach(var car in train.Cars)
+            {
+                var model=car.GetComponent<FrontierTrainModels>();if(model==null)model=car.gameObject.AddComponent<FrontierTrainModels>();model.Build(car,currentPalette);
                 foreach(var draw in car.GetComponentsInChildren<Renderer>(true))
                     draw.sharedMaterials=draw.sharedMaterials.Select(Style).ToArray();
+            }
         }
         private Material Style(Material source)
         {

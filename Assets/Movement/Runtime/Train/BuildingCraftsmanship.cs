@@ -7,56 +7,7 @@ namespace AllAboard.Train
         private static GameObject Box(Transform p,string n,Vector3 at,Vector3 size,Material m)=>CraftGeometry.Box(p,n,at,size,m);
         public static void House(Transform house,float width,float height,float pitch,int style,bool abandoned,Material[] m)
         {
-            var root=CraftGeometry.Group(house,"Detailed House Craftsmanship");
-            // Narrow clapboard shadows, corner blocks and a continuous lower weather strip.
-            foreach(float side in new[]{-1f,1f})
-            {
-                for(float y=.65f;y<height-.15f;y+=.38f)
-                {
-                    Box(root,"Rear Clapboard Lap",new Vector3(0,y,3.515f),new Vector3(width,.022f,.035f),m[2]);
-                    Box(root,"Side Clapboard Lap",new Vector3(side*(width*.5f+.014f),y,0),new Vector3(.03f,.022f,7f),m[2]);
-                }
-                Box(root,"Side Weatherboard Base",new Vector3(side*(width*.5f+.035f),.56f,0),new Vector3(.07f,.14f,7.1f),m[8]);
-                var window=CraftGeometry.Group(root,"Side Sash Window");
-                window.localPosition=new Vector3(side*(width*.5f+.07f),height>6?2.1f:1.9f,1.2f);
-                window.localRotation=Quaternion.Euler(0,side>0?-90:90,0);
-                Box(window,"Dark Window Recess",Vector3.zero,new Vector3(1.25f,1.45f,.08f),m[5]);
-                Box(window,"Inset Window Glass",Vector3.back*.052f,new Vector3(1.06f,1.27f,.022f),m[3]);
-                CraftGeometry.Frame(window,Vector3.back*.083f,new Vector2(1.27f,1.47f),.075f,m[8]);
-                Box(window,"Sash Vertical Bar",Vector3.back*.09f,new Vector3(.045f,1.4f,.045f),m[8]);
-                Box(window,"Sash Cross Bar",Vector3.back*.09f,new Vector3(1.2f,.045f,.045f),m[8]);
-                Box(window,"Deep Window Sill",new Vector3(0,-.76f,-.11f),new Vector3(1.45f,.12f,.3f),m[8]);
-                if(style!=3)foreach(float shutter in new[]{-1f,1f})
-                {
-                    Box(window,"Window Shutter",new Vector3(shutter*.86f,0,-.06f),new Vector3(.37f,1.45f,.08f),m[2]);
-                    for(float y=-.6f;y<.65f;y+=.14f)Box(window,"Shutter Louvre",new Vector3(shutter*.86f,y,-.11f),new Vector3(.34f,.045f,.035f),m[8]);
-                }
-                // Porch post collars and brackets stay clear of the centre entrance.
-                float x=side*(width*.5f-.2f),top=style==2?3.49f:style==4?3.48f:style==5?3.12f:3.08f;
-                foreach(float y in new[]{.57f,top-.19f})Box(root,"Porch Post Collar",new Vector3(x,y,-5.45f),new Vector3(.23f,.16f,.23f),m[8]);
-                CraftGeometry.Rod(root,"Porch Knee Brace",new Vector3(x,top-.6f,-5.45f),new Vector3(x-side*.48f,top-.17f,-5.45f),.075f,m[8]);
-                if(!abandoned&&style!=4)
-                {
-                    var planter=CraftGeometry.Group(root,"Porch Window Planter");planter.localPosition=new Vector3(side*width*.30f,1.04f,-3.92f);
-                    Box(planter,"Planter Box",Vector3.zero,new Vector3(1.35f,.21f,.4f),m[2]);
-                    for(int i=0;i<5;i++)
-                    {Box(planter,"Plant Stem",new Vector3(-.5f+i*.25f,.19f,0),new Vector3(.035f,.25f,.035f),m[4]);var leaf=Box(planter,"Broad Leaf",new Vector3(-.5f+i*.25f,.25f,-.015f),new Vector3(.17f,.055f,.16f),i%2==0?m[4]:m[7]);leaf.transform.localRotation=Quaternion.Euler(0,i*53,22);}
-                }
-            }
-            for(float x=-width*.5f;x<width*.5f;x+=.32f)
-                Box(root,"Porch Floor Plank Joint",new Vector3(x,.487f,-4.72f),new Vector3(.012f,.006f,2.03f),m[5]);
-            if(style!=4)
-            {
-                float front=style==3?-3.83f:-3.65f;
-                CraftGeometry.Frame(root,new Vector3(0,1.67f,front),new Vector2(1.18f,2.47f),.075f,m[8]);
-                foreach(float y in new[]{1f,2.1f})CraftGeometry.Frame(root,new Vector3(0,y,front-.025f),new Vector2(.69f,.65f),.035f,m[6]);
-                foreach(float y in new[]{.88f,2.47f})
-                {Box(root,"Door Hinge Leaf",new Vector3(-.48f,y,front-.028f),new Vector3(.14f,.075f,.025f),m[3]);CraftGeometry.Bolt(root,new Vector3(-.47f,y,front-.048f),.025f,m[6],Vector3.back);}
-            }
-            Roof(root,Vector3.zero,width,7,height,pitch,m[3]);
-            float chimneyBottom=height+BuildingRoof.Rise(width,pitch)*.5f-.2f;
-            for(int i=0;i<7;i++)Box(root,"Chimney Brick Course",new Vector3(width*.25f,chimneyBottom+.15f+i*.22f,1.015f),new Vector3(.57f,.022f,.027f),m[8]);
-            CraftGeometry.Bake(root);
+            FrontierHouseModels.Build(house,width,height,pitch,style,abandoned,m);
         }
         public static void Roof(Transform root,Vector3 at,float width,float length,float baseY,float pitch,Material material)
         {

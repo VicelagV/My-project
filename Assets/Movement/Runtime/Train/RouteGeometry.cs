@@ -171,15 +171,15 @@ namespace AllAboard.Train
                 if(region==LandscapeRegion.Desert)
                 {if(random.NextDouble()<0.45){Box(p+Vector3.up*1.4f,new Vector3(.4f,2.8f,.4f),Quaternion.identity,leaves);Box(p+new Vector3(.55f,1.7f,0f),new Vector3(1.1f,.3f,.3f),Quaternion.identity,leaves);Box(p+new Vector3(.9f,2f,0f),new Vector3(.3f,.9f,.3f),Quaternion.identity,leaves);}continue;}
                 if(region!=LandscapeRegion.Forest&&random.NextDouble()<0.72)continue;
-                Box(p+Vector3.up*height*0.25f,new Vector3(0.45f,height*0.5f,0.45f),Quaternion.identity,trunk);
-                if(random.NextDouble()<.4)
+                TreeStem(p,height*.56f,trunk);
+                if(random.NextDouble()<(region==LandscapeRegion.Forest?.16:.4))
                 {
-                    BroadleafTrees++;Rock(p+Vector3.up*height*.55f,height*.34f,leaves,random);
-                    Rock(p+new Vector3(-height*.15f,height*.48f,height*.07f),height*.24f,leaves,random);
-                    Rock(p+new Vector3(height*.16f,height*.50f,-height*.06f),height*.25f,leaves,random);
+                    BroadleafTrees++;Blob(p+Vector3.up*height*.55f,height*.34f,leaves);
+                    Blob(p+new Vector3(-height*.18f,height*.48f,height*.07f),height*.24f,leaves);
+                    Blob(p+new Vector3(height*.19f,height*.50f,-height*.06f),height*.25f,leaves);
                     Box(p+new Vector3(-height*.1f,height*.43f,0),new Vector3(.18f,height*.25f,.18f),Quaternion.Euler(0,0,45),trunk);
                 }
-                else{for(int tier=0;tier<5;tier++){float t=tier/5f;Cone(p+Vector3.up*height*(.2f+t*.62f),height*(.36f-t*.15f),height*(.2f-t*.14f),leaves);}}
+                else{for(int tier=0;tier<5;tier++){float t=tier/5f;PineTier(p+new Vector3(Mathf.Sin(tier*2.3f)*height*.035f,height*(.14f+t*.64f),Mathf.Cos(tier*1.7f)*height*.025f),height*(.4f-t*.17f),height*(.24f-t*.17f),leaves,tier);}}
 
                 var collider=new GameObject("Tree Trunk");collider.transform.SetParent(transform,false);collider.transform.localPosition=p+Vector3.up*height*0.25f;
                 var capsule=collider.AddComponent<CapsuleCollider>();capsule.height=height*0.5f;capsule.radius=0.25f;
@@ -242,16 +242,16 @@ namespace AllAboard.Train
                 else if(slope<1.5f)
                 {
                     var material=dry?sand:grass[region==LandscapeRegion.Forest?2:rng.Next(2)];
-                    if(roll>.86&&!dry){ShrubClusters++;for(int clump=0;clump<3;clump++)Rock(p+new Vector3((clump-1)*.55f,-.08f,clump%2*.3f),.8f+(float)rng.NextDouble()*.5f,material,rng,true);}
+                    if(roll>.86&&!dry){ShrubClusters++;for(int clump=0;clump<3;clump++)Blob(p+new Vector3((clump-1)*.55f,-.08f,clump%2*.3f),.8f+(float)rng.NextDouble()*.5f,material,true);}
                     else
                     {
-                        GrassClusters++;for(int blade=0;blade<(dry?5:18);blade++)
+                        GrassClusters++;for(int blade=0;blade<(dry?5:9);blade++)
                         {
-                            var foot=p+new Vector3((float)(rng.NextDouble()-.5)*7f,-.045f,(float)(rng.NextDouble()-.5)*7f);
+                            var foot=p+new Vector3((float)(rng.NextDouble()-.5)*1.8f,-.045f,(float)(rng.NextDouble()-.5)*1.8f);
                             foot.y=SurfaceHeight(foot)-.045f;
-                            float angle=(float)rng.NextDouble()*Mathf.PI*2,height=(dry?.28f:.4f)+(float)rng.NextDouble()*.65f;
-                            var side=new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*.18f;var tip=foot+Vector3.up*height+new Vector3(Mathf.Sin(angle)*.17f,0,Mathf.Cos(angle)*.17f);
-                            var batch=GetBatch(foot,material,"Ground Cover");Triangle(batch,foot-side,tip,foot+side);Triangle(batch,foot+side,tip,foot-side);
+                            float angle=(float)rng.NextDouble()*Mathf.PI*2,height=(dry?.18f:.22f)+(float)rng.NextDouble()*.3f;
+                            var side=new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*.07f;var tip=foot+Vector3.up*height+new Vector3(Mathf.Sin(angle)*.17f,0,Mathf.Cos(angle)*.17f);
+                            var batch=GetBatch(foot,material,"Ground Cover");var mid=Vector3.Lerp(foot,tip,.55f);Quad(batch,foot-side,mid-side*.55f,mid+side*.55f,foot+side);Quad(batch,foot+side,mid+side*.55f,mid-side*.55f,foot-side);Triangle(batch,mid-side*.55f,tip,mid+side*.55f);Triangle(batch,mid+side*.55f,tip,mid-side*.55f);
                         }
                     }
                 }
@@ -259,12 +259,56 @@ namespace AllAboard.Train
         }
         private void Rock(Vector3 p,float scale,Material material,System.Random rng,bool grounded=false)
         {
-            var batch=GetBatch(p,material,"Ground Cover");const int sides=7;var bottom=new Vector3[sides];var shoulder=new Vector3[sides];
+            var batch=GetBatch(p,material,"Ground Cover");const int sides=8;var bottom=new Vector3[sides];var shoulder=new Vector3[sides];var cap=new Vector3[sides];
             float yaw=(float)rng.NextDouble()*6.28f;
-            for(int i=0;i<sides;i++){float angle=yaw+i*Mathf.PI*2/sides,rad=scale*(.65f+(float)rng.NextDouble()*.2f);bottom[i]=p+new Vector3(Mathf.Cos(angle)*rad,-.18f*scale,Mathf.Sin(angle)*rad);shoulder[i]=p+new Vector3(Mathf.Cos(angle)*rad*.72f,scale*(.28f+(float)rng.NextDouble()*.12f),Mathf.Sin(angle)*rad*.72f);}
-            if(grounded)for(int i=0;i<sides;i++)bottom[i].y=SurfaceHeight(bottom[i])-scale*.14f;
-            var top=p+new Vector3(scale*.13f,scale*.67f,scale*.07f);
-            for(int i=0;i<sides;i++){int n=(i+1)%sides;Quad(batch,bottom[i],shoulder[i],shoulder[n],bottom[n]);Triangle(batch,shoulder[i],top,shoulder[n]);Triangle(batch,p-Vector3.up*.18f*scale,bottom[i],bottom[n]);}
+            for(int i=0;i<sides;i++)
+            {
+                float angle=yaw+i*Mathf.PI*2/sides,rad=scale*(.72f+(float)rng.NextDouble()*.2f);
+                bottom[i]=p+new Vector3(Mathf.Cos(angle)*rad,-.16f*scale,Mathf.Sin(angle)*rad*.76f);
+                shoulder[i]=p+new Vector3(Mathf.Cos(angle)*rad*.96f,scale*(.30f+(float)rng.NextDouble()*.1f),Mathf.Sin(angle)*rad*.7f);
+                cap[i]=p+new Vector3(Mathf.Cos(angle)*rad*.48f+scale*.08f,scale*.62f,Mathf.Sin(angle)*rad*.36f);
+                if(grounded)bottom[i].y=SurfaceHeight(bottom[i])-scale*.12f;
+            }
+            for(int i=0;i<sides;i++){int n=(i+1)%sides;Quad(batch,bottom[i],shoulder[i],shoulder[n],bottom[n]);Quad(batch,shoulder[i],cap[i],cap[n],shoulder[n]);Triangle(batch,p+Vector3.up*scale*.62f,cap[n],cap[i]);Triangle(batch,p-Vector3.up*.16f*scale,bottom[i],bottom[n]);}
+        }
+        private void Blob(Vector3 p,float scale,Material material,bool grounded=false)
+        {
+            var batch=GetBatch(p,material,"Ground Cover");const int sides=10;var rings=new Vector3[3,sides];
+            for(int ring=0;ring<3;ring++)for(int i=0;i<sides;i++)
+            {
+                float angle=i*Mathf.PI*2/sides,lat=(ring-1)*Mathf.PI/4;
+                var v=p+new Vector3(Mathf.Cos(angle)*Mathf.Cos(lat)*scale,scale*(.35f+Mathf.Sin(lat)*.6f),Mathf.Sin(angle)*Mathf.Cos(lat)*scale*.85f);
+                if(grounded&&ring==0)v.y=SurfaceHeight(v)-scale*.05f;rings[ring,i]=v;
+            }
+            for(int i=0;i<sides;i++)
+            {
+                int n=(i+1)%sides;for(int ring=0;ring<2;ring++)Quad(batch,rings[ring,i],rings[ring+1,i],rings[ring+1,n],rings[ring,n]);
+                Triangle(batch,p-Vector3.up*scale*.25f,rings[0,i],rings[0,n]);Triangle(batch,p+Vector3.up*scale*.95f,rings[2,n],rings[2,i]);
+            }
+        }
+        private void TreeStem(Vector3 p,float height,Material material)
+        {
+            var batch=GetBatch(p,material,"Trees");const int sides=7;
+            for(int i=0;i<sides;i++)
+            {
+                float a=i*Mathf.PI*2/sides,b=(i+1)*Mathf.PI*2/sides;
+                var l=p+new Vector3(Mathf.Cos(a)*.3f,-.08f,Mathf.Sin(a)*.3f);var r=p+new Vector3(Mathf.Cos(b)*.3f,-.08f,Mathf.Sin(b)*.3f);
+                var u=p+new Vector3(Mathf.Cos(a)*.13f,height,Mathf.Sin(a)*.13f);var w=p+new Vector3(Mathf.Cos(b)*.13f,height,Mathf.Sin(b)*.13f);
+                Quad(batch,l,u,w,r);Triangle(batch,p-Vector3.up*.08f,l,r);Triangle(batch,p+Vector3.up*height,w,u);
+            }
+        }
+        private void PineTier(Vector3 p,float height,float radius,Material material,int tier)
+        {
+            var batch=GetBatch(p,material,"Trees");const int sides=12;float yaw=tier*.37f;
+            var rim=new Vector3[sides];var middle=new Vector3[sides];
+            for(int i=0;i<sides;i++)
+            {
+                float a=yaw+i*Mathf.PI*2/sides,r=radius*(i%2==0?1:.73f);
+                rim[i]=p+new Vector3(Mathf.Cos(a)*r,i%2==0?-.08f:height*.12f,Mathf.Sin(a)*r);
+                middle[i]=p+new Vector3(Mathf.Cos(a)*radius*.52f,height*.46f,Mathf.Sin(a)*radius*.52f);
+            }
+            var tip=p+new Vector3(radius*.12f,height,-radius*.06f);
+            for(int i=0;i<sides;i++){int n=(i+1)%sides;Quad(batch,rim[i],middle[i],middle[n],rim[n]);Triangle(batch,middle[i],tip,middle[n]);Triangle(batch,p,rim[i],rim[n]);}
         }
         private void Cone(Vector3 p,float height,float radius,Material material)
         {

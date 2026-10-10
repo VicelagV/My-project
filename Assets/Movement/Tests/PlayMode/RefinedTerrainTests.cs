@@ -51,9 +51,9 @@ namespace AllAboard.Movement.Tests
         {
             foreach(var car in world.Train.Cars)
             {
-                var decoration=car.transform.Find("Detailed Train Craftsmanship");Assert.That(decoration,Is.Not.Null);
+                var decoration=car.transform.Find(FrontierTrainModels.ModelRoot);Assert.That(decoration,Is.Not.Null);
                 Assert.That(decoration.GetComponentsInChildren<Collider>(),Is.Empty);
-                Assert.That(decoration.GetComponentsInChildren<MeshRenderer>().Length,Is.InRange(1,7));
+                Assert.That(decoration.GetComponentsInChildren<MeshRenderer>().Length,Is.InRange(1,8));
                 var count=decoration.GetComponentsInChildren<MeshFilter>().Sum(f=>f.sharedMesh.vertexCount);Assert.That(count,Is.GreaterThan(1000));
                 foreach(var mesh in decoration.GetComponentsInChildren<MeshFilter>())Assert.That(float.IsNaN(mesh.sharedMesh.bounds.size.sqrMagnitude),Is.False);
             }

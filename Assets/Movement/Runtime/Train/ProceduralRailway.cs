@@ -78,21 +78,24 @@ namespace AllAboard.Train
             var inventory=train.GetComponent<RailwayInventory>();if(inventory==null)inventory=train.gameObject.AddComponent<RailwayInventory>();if(loadedProgress!=null)inventory.RestoreProgress(loadedProgress.blumt,loadedProgress.repairDebt);inventory.BeginDay(day);
             generated=new GameObject("Generated Route World").transform;generated.SetParent(transform,false);
             if(!Application.isPlaying)generated.gameObject.hideFlags=HideFlags.DontSaveInEditor;
-            Geometry=generated.gameObject.AddComponent<RouteGeometry>();Geometry.Build(Network,palette[0],palette[1],palette[2],palette[3],palette[4]);
-            RailwayStartingGear.Install(train,palette);
+            var style=GetComponent<FrontierVisualStyle>();if(style==null)style=gameObject.AddComponent<FrontierVisualStyle>();
+            var styledPalette=style.Prepare(palette);
+            Geometry=generated.gameObject.AddComponent<RouteGeometry>();Geometry.Build(Network,styledPalette[0],styledPalette[1],styledPalette[2],styledPalette[3],styledPalette[4]);
+            RailwayStartingGear.Install(train,styledPalette);
             foreach(var edge in Network.edges.Where(RailDamagePlan.HasDamage))
-            {var site=new GameObject("Rail Damage - "+edge.id);site.transform.SetParent(generated,false);site.AddComponent<RailDamageSection>().Configure(edge,palette);}
+            {var site=new GameObject("Rail Damage - "+edge.id);site.transform.SetParent(generated,false);site.AddComponent<RailDamageSection>().Configure(edge,styledPalette);}
             damage=generated.GetComponentsInChildren<RailDamageSection>();train.RailSafetyCheck=CheckRailSafety;
-            foreach(var landmark in Geometry.Landmarks)LandmarkArt.Build(generated,landmark,Geometry,palette);
+            foreach(var landmark in Geometry.Landmarks)LandmarkArt.Build(generated,landmark,Geometry,styledPalette);
             foreach(var node in Network.nodes)
             {
-                if(node.place==RoutePlace.ForestRepair)RouteProps.RepairMarker(generated,node,palette);
-                if(node.place==RoutePlace.Return)RouteProps.ReturnMarker(generated,node,palette);
-                if(RouteGeometry.IsStop(node.place))RouteProps.Station(generated,node,palette,train,coalPrefab);
-                if(Network.Outgoing(node.id).Count()>1)RouteProps.Switch(generated,node,this,palette);
+                if(node.place==RoutePlace.ForestRepair)RouteProps.RepairMarker(generated,node,styledPalette);
+                if(node.place==RoutePlace.Return)RouteProps.ReturnMarker(generated,node,styledPalette);
+                if(RouteGeometry.IsStop(node.place))RouteProps.Station(generated,node,styledPalette,train,coalPrefab);
+                if(Network.Outgoing(node.id).Count()>1)RouteProps.Switch(generated,node,this,styledPalette);
             }
-            var economy=train.GetComponent<TrainDayEconomy>();if(economy==null)economy=train.gameObject.AddComponent<TrainDayEconomy>();if(loadedProgress!=null)economy.SetDifficulty(loadedProgress.difficulty);economy.Configure(this,palette);if(loadedProgress!=null)train.GetComponent<TrainMaintenance>().Restore(loadedProgress.upgrades);
-            var combat=GetComponent<CombatWorld>();if(combat==null)combat=gameObject.AddComponent<CombatWorld>();combat.Configure(this,palette);
+            var economy=train.GetComponent<TrainDayEconomy>();if(economy==null)economy=train.gameObject.AddComponent<TrainDayEconomy>();if(loadedProgress!=null)economy.SetDifficulty(loadedProgress.difficulty);economy.Configure(this,styledPalette);if(loadedProgress!=null)train.GetComponent<TrainMaintenance>().Restore(loadedProgress.upgrades);
+            var combat=GetComponent<CombatWorld>();if(combat==null)combat=gameObject.AddComponent<CombatWorld>();combat.Configure(this,styledPalette);
+            style.ApplyTrain(train);
             Physics.SyncTransforms();
         }
         private Vector3[] PlanPoints(out Dictionary<string,int> indices)

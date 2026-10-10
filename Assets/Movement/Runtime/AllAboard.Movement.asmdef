@@ -1,5 +1,9 @@
 {
     "name": "AllAboard.Movement",
     "rootNamespace": "AllAboard.Movement",
-    "references": ["Unity.InputSystem"]
+    "references": [
+        "Unity.InputSystem",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime"
+    ]
 }

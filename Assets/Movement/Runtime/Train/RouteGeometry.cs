@@ -159,7 +159,7 @@ namespace AllAboard.Train
         private void Trees(List<Vector3> samples,Material trunk,Material leaves)
         {
             var random=new System.Random(unchecked(graph.seed*7919+17));
-            for(int i=0;i<samples.Count;i+=2)
+            for(int i=0;i<samples.Count;i++)for(int tree=0;tree<3;tree++)
             {
                 Vector3 p=samples[i]+new Vector3((float)(random.NextDouble()-0.5)*180f,0f,(float)(random.NextDouble()-0.5)*40f);
                 if(Vector3.Distance(p,graph.Node("Terminum").position)<650f)continue;
@@ -167,7 +167,7 @@ namespace AllAboard.Train
                 bool nearStop=false;foreach(var node in graph.nodes)if(IsStop(node.place)&&Vector3.Distance(p,node.position)<145f){nearStop=true;break;}if(nearStop)continue;
                 bool nearLandmark=false;foreach(var landmark in Landmarks)if(Vector3.Distance(p,landmark.position)<55f){nearLandmark=true;break;}if(nearLandmark)continue;
                 if(!CanScatter(p))continue;p.y=SurfaceHeight(p);float height=4f+(float)random.NextDouble()*4f;
-                var region=WorldRegions.At(graph,p);
+                var region=WorldRegions.At(graph,p);if(tree>0&&region!=LandscapeRegion.Forest)continue;if(region==LandscapeRegion.Forest)height=8f+(float)random.NextDouble()*6f;
                 if(region==LandscapeRegion.Desert)
                 {if(random.NextDouble()<0.45){Box(p+Vector3.up*1.4f,new Vector3(.4f,2.8f,.4f),Quaternion.identity,leaves);Box(p+new Vector3(.55f,1.7f,0f),new Vector3(1.1f,.3f,.3f),Quaternion.identity,leaves);Box(p+new Vector3(.9f,2f,0f),new Vector3(.3f,.9f,.3f),Quaternion.identity,leaves);}continue;}
                 if(region!=LandscapeRegion.Forest&&random.NextDouble()<0.72)continue;
@@ -179,7 +179,7 @@ namespace AllAboard.Train
                     Rock(p+new Vector3(height*.16f,height*.50f,-height*.06f),height*.25f,leaves,random);
                     Box(p+new Vector3(-height*.1f,height*.43f,0),new Vector3(.18f,height*.25f,.18f),Quaternion.Euler(0,0,45),trunk);
                 }
-                else{Cone(p+Vector3.up*height*0.23f,height*0.65f,height*0.29f,leaves);Cone(p+Vector3.up*height*0.50f,height*0.50f,height*0.22f,leaves);}
+                else{for(int tier=0;tier<5;tier++){float t=tier/5f;Cone(p+Vector3.up*height*(.2f+t*.62f),height*(.36f-t*.15f),height*(.2f-t*.14f),leaves);}}
 
                 var collider=new GameObject("Tree Trunk");collider.transform.SetParent(transform,false);collider.transform.localPosition=p+Vector3.up*height*0.25f;
                 var capsule=collider.AddComponent<CapsuleCollider>();capsule.height=height*0.5f;capsule.radius=0.25f;
@@ -242,7 +242,7 @@ namespace AllAboard.Train
                 else if(slope<1.5f)
                 {
                     var material=dry?sand:grass[region==LandscapeRegion.Forest?2:rng.Next(2)];
-                    if(roll>.86&&!dry){ShrubClusters++;for(int clump=0;clump<3;clump++)Cone(p+new Vector3((clump-1)*.35f,-.08f,clump%2*.3f),.6f+(float)rng.NextDouble()*.5f,.6f,material);}
+                    if(roll>.86&&!dry){ShrubClusters++;for(int clump=0;clump<3;clump++)Rock(p+new Vector3((clump-1)*.55f,-.08f,clump%2*.3f),.8f+(float)rng.NextDouble()*.5f,material,rng,true);}
                     else
                     {
                         GrassClusters++;for(int blade=0;blade<(dry?5:18);blade++)

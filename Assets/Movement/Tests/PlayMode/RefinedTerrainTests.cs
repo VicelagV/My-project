@@ -35,6 +35,18 @@ namespace AllAboard.Movement.Tests
             }
             Assert.That(checkedPoints,Is.GreaterThan(5));
         }
+        [Test] public void FrontierStyleUsesImportedGrainAndReusesItsSceneProfile()
+        {
+            var style=world.GetComponent<FrontierVisualStyle>();Assert.That(style,Is.Not.Null);Assert.That(style.Ready,Is.True);
+            foreach(string texture in new[]{"Earth","Gravel","Wood","Foliage","Metal"})Assert.That(Resources.Load<Texture2D>("FrontierTextures/"+texture),Is.Not.Null);
+            Assert.That(RenderSettings.fog,Is.True);Assert.That(RenderSettings.fogStartDistance,Is.LessThan(150));
+            var paints=world.Train.Cars.SelectMany(c=>c.GetComponentsInChildren<Renderer>()).SelectMany(r=>r.sharedMaterials).Where(m=>m!=null&&m.name.Contains("TrainNavy Frontier")).Distinct().ToArray();
+            Assert.That(paints.Length,Is.GreaterThan(0));foreach(var paint in paints)Assert.That(paint.GetTexture("_BaseMap"),Is.Not.Null);
+            var source=UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Movement/Materials/TrainNavy.mat");var originals=new[]{source};
+            var styled=style.Prepare(originals);Assert.That(originals[0],Is.SameAs(source));Assert.That(styled[0],Is.Not.SameAs(source));
+            world.BuildInitialWorld();Assert.That(world.GetComponents<FrontierVisualStyle>().Length,Is.EqualTo(1));
+            foreach(var paint in paints)Assert.That(paint,Is.Not.Null,"Rebuild must preserve the reusable material copies.");
+        }
         [Test] public void TrainDecorationsAreBatchedAndHaveNoCollisionShapes()
         {
             foreach(var car in world.Train.Cars)

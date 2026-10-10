@@ -20,7 +20,7 @@ namespace AllAboard.Train
             foreach(float side in new[]{-1f,1f})
             {
                 // Panel joints, cover plates and rivets sit outside the existing closed shell.
-                for(float z=-4.1f;z<4.4f;z+=.55f)
+                for(float z=-4.1f;z<4.4f;z+=1.1f)
                 {
                     Bolt(root,new Vector3(side*1.992f,1.03f,z),.045f,side*Vector3.right);
                     Bolt(root,new Vector3(side*1.992f,kind==CarKind.Coal?1.56f:2.08f,z),.04f,side*Vector3.right);
@@ -41,7 +41,7 @@ namespace AllAboard.Train
                         foreach(float dz in new[]{-.62f,.62f})Box(root,"Panel Vertical Moulding",new Vector3(side*2.003f,1.65f,z+dz),new Vector3(.025f,.62f,.035f),brass);
                         foreach(float y in new[]{1.34f,1.96f})Box(root,"Panel Horizontal Moulding",new Vector3(side*2.003f,y,z),new Vector3(.025f,.035f,1.26f),brass);
                     }
-                    for(float z=-4.15f;z<4.4f;z+=.75f)
+                    for(float z=-4.15f;z<4.4f;z+=1.5f)
                         Box(root,"Roof Sheet Lap",new Vector3(side*1.96f,3.90f,z),new Vector3(.018f,.035f,.055f),brass);
                 }
                 else
@@ -85,7 +85,7 @@ namespace AllAboard.Train
                 foreach(float seat in new[]{-.31f,.31f})
                 {
                     Box(root,"Seat Cushion Piping",new Vector3(x+seat,1.68f,z+.37f),new Vector3(.55f,.025f,.025f),ivory);
-                    foreach(float y in new[]{1.94f,2.18f,2.37f})
+                    foreach(float y in new[]{2.12f})
                         CraftGeometry.Bolt(root,new Vector3(x+seat,y,z-.245f),.04f,brass,Vector3.forward);
                 }
                 Box(root,"Seat Back Carved Top",new Vector3(x,2.51f,z-.33f),new Vector3(1.28f,.055f,.2f),wood);
@@ -93,14 +93,14 @@ namespace AllAboard.Train
             }
             foreach(float side in new[]{-1f,1f})
             {
-                for(float z=-4f;z<4.2f;z+=.32f)Box(root,"Luggage Rack Slat",new Vector3(side*1.47f,3.445f,z),new Vector3(.62f,.025f,.035f),wood);
+                for(float z=-4f;z<4.2f;z+=.64f)Box(root,"Luggage Rack Slat",new Vector3(side*1.47f,3.445f,z),new Vector3(.62f,.025f,.035f),wood);
                 foreach(float z in new[]{-3.25f,-.9f,2.9f})
                 {
                     Box(root,"Leather Travel Case",new Vector3(side*1.46f,3.59f,z),new Vector3(.4f,.27f,.55f),leather);
                     foreach(float dz in new[]{-.17f,.17f})Box(root,"Travel Case Strap",new Vector3(side*1.46f,3.736f,z+dz),new Vector3(.42f,.025f,.035f),brass);
                 }
             }
-            for(float z=-4f;z<4.1f;z+=.5f)foreach(float side in new[]{-1f,1f})
+            for(float z=-4f;z<4.1f;z+=1f)foreach(float side in new[]{-1f,1f})
                 Box(root,"Aisle Runner Woven Border",new Vector3(side*.405f,1.168f,z),new Vector3(.035f,.008f,.16f),ivory);
         }
         private void Locomotive(Transform root)
@@ -117,7 +117,7 @@ namespace AllAboard.Train
                 Rod(root,"Feedwater Pipe",new Vector3(side*1.16f,1.54f,4.4f),new Vector3(side*1.16f,1.54f,7.2f),.085f,brass);
                 Rod(root,"Feedwater Rise",new Vector3(side*1.16f,1.54f,7.2f),new Vector3(side*1.16f,2.0f,7.2f),.085f,brass);
                 foreach(float z in new[]{4.5f,6.1f,7.2f})Box(root,"Pipe Bracket",new Vector3(side*1.11f,1.54f,z),new Vector3(.18f,.045f,.12f),steel);
-                for(float z=4.5f;z<8.4f;z+=.3f)Box(root,"Running Board Tread",new Vector3(side*1.45f,1.16f,z),new Vector3(.48f,.018f,.045f),body);
+                for(float z=4.5f;z<8.4f;z+=.6f)Box(root,"Running Board Tread",new Vector3(side*1.45f,1.16f,z),new Vector3(.48f,.018f,.045f),body);
                 Rod(root,"Cylinder Drain Pipe",new Vector3(side*1.6f,.65f,7.8f),new Vector3(side*1.6f,.4f,8.23f),.06f,brass);
                 foreach(float z in new[]{-.8f,.8f,3.2f})
                     Box(root,"Cab Wainscot Seam",new Vector3(side*1.81f,1.75f,z),new Vector3(.025f,.75f,.035f),brass);

@@ -32,11 +32,11 @@ namespace AllAboard.Train
         {
             switch(region)
             {
-                case LandscapeRegion.Forest:return new Color(.24f,.34f,.17f);
+                case LandscapeRegion.Forest:return new Color(.32f,.43f,.25f);
                 case LandscapeRegion.Desert:return new Color(.66f,.49f,.28f);
                 case LandscapeRegion.Hills:return new Color(.37f,.42f,.24f);
                 case LandscapeRegion.Mountains:return new Color(.42f,.40f,.34f);
-                default:return new Color(.48f,.48f,.25f);
+                default:return new Color(.43f,.49f,.29f);
             }
         }
     }

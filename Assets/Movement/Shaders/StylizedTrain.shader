@@ -4,6 +4,8 @@ Shader "AllAboard/Stylized Train"
     {
         _BaseColor ("Paint", Color) = (1,1,1,1)
         _EmissionColor ("Glow", Color) = (0,0,0,1)
+        _BaseMap ("Surface Grain", 2D) = "white" {}
+        _GrainScale ("Grain Scale", Float) = 0.7
     }
     SubShader
     {
@@ -15,6 +17,8 @@ Shader "AllAboard/Stylized Train"
         // already batch geometry without changing renderer-wide project settings.
         float4 _BaseColor;
         float4 _EmissionColor;
+        TEXTURE2D(_BaseMap); SAMPLER(sampler_BaseMap);
+        float _GrainScale;
         ENDHLSL
         Pass
         {
@@ -32,10 +36,14 @@ Shader "AllAboard/Stylized Train"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             struct Attributes { float4 positionOS:POSITION; float3 normalOS:NORMAL; };
-            struct Varyings { float4 positionCS:SV_POSITION; float3 positionWS:TEXCOORD0; half3 normalWS:TEXCOORD1; float4 shadowCoord:TEXCOORD2; half fog:TEXCOORD3; };
+            struct Varyings { float4 positionCS:SV_POSITION; float3 positionWS:TEXCOORD0; half3 normalWS:TEXCOORD1; float4 shadowCoord:TEXCOORD2; half fog:TEXCOORD3; float3 grainPosition:TEXCOORD4; half3 grainNormal:TEXCOORD5; };
             Varyings Vert(Attributes input)
             {
                 Varyings output;
+                // Preserve physical grain scale on stretched primitives, while moving with the object.
+                float3 axisScale=float3(length(UNITY_MATRIX_M._m00_m10_m20),length(UNITY_MATRIX_M._m01_m11_m21),length(UNITY_MATRIX_M._m02_m12_m22));
+                output.grainPosition=input.positionOS.xyz*axisScale;
+                output.grainNormal=input.normalOS;
                 output.positionWS=TransformObjectToWorld(input.positionOS.xyz);
                 output.positionCS=TransformWorldToHClip(output.positionWS);
                 output.normalWS=TransformObjectToWorldNormal(input.normalOS);
@@ -48,8 +56,8 @@ Shader "AllAboard/Stylized Train"
                 half3 normal=normalize(input.normalWS);
                 Light sun=GetMainLight(input.shadowCoord);
                 half ndl=saturate(dot(normal,sun.direction));
-                half band=ndl<0.25h?0.3h:(ndl<0.7h?0.7h:1.0h);
-                half3 lighting=SampleSH(normal)*0.55h+sun.color*band*lerp(0.45h,1.0h,sun.shadowAttenuation);
+                half band=lerp(0.32h,1.0h,smoothstep(0.0h,1.0h,ndl));
+                half3 lighting=SampleSH(normal)*1.1h+sun.color*band*lerp(0.45h,1.0h,sun.shadowAttenuation);
                 #if defined(_ADDITIONAL_LIGHTS)
                 uint count=GetAdditionalLightsCount();
                 for(uint i=0;i<count;i++)
@@ -58,7 +66,13 @@ Shader "AllAboard/Stylized Train"
                     lighting+=lamp.color*saturate(dot(normal,lamp.direction))*lamp.distanceAttenuation*lamp.shadowAttenuation;
                 }
                 #endif
-                return half4(MixFog(_BaseColor.rgb*lighting+_EmissionColor.rgb,input.fog),_BaseColor.a);
+                half3 weights=pow(abs(normalize(input.grainNormal)),4);
+                weights/=max(dot(weights,half3(1,1,1)),0.001h);
+                float3 p=input.grainPosition*_GrainScale;
+                half3 grain=SAMPLE_TEXTURE2D(_BaseMap,sampler_BaseMap,p.yz).rgb*weights.x
+                    +SAMPLE_TEXTURE2D(_BaseMap,sampler_BaseMap,p.xz).rgb*weights.y
+                    +SAMPLE_TEXTURE2D(_BaseMap,sampler_BaseMap,p.xy).rgb*weights.z;
+                return half4(MixFog(_BaseColor.rgb*grain*lighting+_EmissionColor.rgb,input.fog),_BaseColor.a);
             }
             ENDHLSL
         }

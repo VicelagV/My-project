@@ -16,18 +16,23 @@ namespace AllAboard.Train
         public bool Settled {get;private set;}
         public string DayReport {get;private set;}
         public int LastRepairCarry {get;private set;}
+        public int TotalEarned {get;private set;}
+        public int TotalPurchased {get;private set;}
+        public int LastRepairsPaid {get;private set;}
+        public int TotalCashSpent {get;private set;}
+        public int SettlementQuota {get;private set;}
         private readonly System.Collections.Generic.Dictionary<RailwayProduct,int> stock=new System.Collections.Generic.Dictionary<RailwayProduct,int>();
         public void Configure(EconomyConfig data)=>configuration=data;
         public int Gold { get; private set; } = 500;
         public float SteelMetres { get; private set; } = 20f;
         public void BeginDay()=>BeginDay(1);
-        public void BeginDay(int day) { Day=Mathf.Max(1,day);Gold=Config.startingGold;SteelMetres=Config.startingSteelMetres;CreditDebt=Obligations=0;EntryPaid=Settled=false;DayReport=null;stock.Clear();AddStock(RailwayProduct.Scrap,2);AddStock(RailwayProduct.Screws,4);AddStock(RailwayProduct.Wood,2);AddStock(RailwayProduct.BoilerPart);AddStock(RailwayProduct.BrakePart);AddStock(RailwayProduct.CoachPart,2); }
-        public bool Spend(int amount) { if (Settled || amount < 0 || Gold < amount) return false; Gold -= amount; return true; }
-        public void Earn(int amount) { if (!Settled && amount > 0) Gold += amount; }
+        public void BeginDay(int day) { Day=Mathf.Max(1,day);Gold=Config.startingGold;SteelMetres=Config.startingSteelMetres;CreditDebt=Obligations=0;EntryPaid=Settled=false;DayReport=null;TotalEarned=TotalPurchased=LastRepairsPaid=TotalCashSpent=SettlementQuota=0;stock.Clear();AddStock(RailwayProduct.Scrap,2);AddStock(RailwayProduct.Screws,4);AddStock(RailwayProduct.Wood,2);AddStock(RailwayProduct.BoilerPart);AddStock(RailwayProduct.BrakePart);AddStock(RailwayProduct.CoachPart,2); }
+        public bool Spend(int amount) { if (Settled || amount < 0 || Gold < amount) return false; Gold -= amount;TotalCashSpent+=amount; return true; }
+        public void Earn(int amount) { if (!Settled && amount > 0) {Gold += amount;TotalEarned+=amount;} }
         public bool BuySteel() { if (!Spend(Config.steelPrice)) return false; SteelMetres += 5f; return true; }
         public bool CanPurchase(int amount)=>!Settled&&amount>=0&&amount<=Gold+Mathf.Max(0,Config.creditLimit-CreditDebt);
         public bool Purchase(int amount)
-        {if(!CanPurchase(amount))return false;int borrowed=Mathf.Max(0,amount-Gold);CreditDebt+=borrowed;Gold=Mathf.Max(0,Gold-amount);return true;}
+        {if(!CanPurchase(amount))return false;int borrowed=Mathf.Max(0,amount-Gold);CreditDebt+=borrowed;Gold=Mathf.Max(0,Gold-amount);TotalPurchased+=amount;return true;}
         public bool PurchaseSteel(int price){if(!Purchase(price))return false;SteelMetres+=5f;return true;}
         public bool SpendBlumt(int amount){if(Settled||amount<0||Blumt<amount)return false;Blumt-=amount;return true;}
         public bool ConsumeStock(RailwayProduct product,int quantity=1){if(quantity<=0||Stock(product)<quantity)return false;stock[product]-=quantity;return true;}
@@ -48,10 +53,11 @@ namespace AllAboard.Train
             damageBill=Mathf.Max(0,damageBill);
             if(Settled)return DayReport!=null&&DayReport.StartsWith("Day complete");Settled=true;
             int due=Obligations+CreditDebt,quota=Quota,available=Gold;
+            SettlementQuota=quota;
             bool success=available>=due+quota&&(!enteredCapital||EntryPaid);
             if(!success){Gold=Mathf.Max(0,available-due);DayReport="Quota failed — Gold "+available+", obligations "+due+", quota "+quota;return false;}
             available-=due+quota;RepairDebt=Mathf.Max(0,damageBill-available);LastRepairCarry=RepairDebt;
-            int paidRepairs=Mathf.Min(Mathf.Max(0,damageBill),available);available-=paidRepairs;
+            int paidRepairs=Mathf.Min(Mathf.Max(0,damageBill),available);available-=paidRepairs;LastRepairsPaid=paidRepairs;
             int gain=Mathf.RoundToInt(available*Config.BlumtMultiplier(difficulty));Blumt+=gain;Gold=0;
             DayReport="Day complete — quota "+quota+", repairs "+paidRepairs+", +"+gain+" Blumt"+(RepairDebt>0?", next-day repair debt "+RepairDebt:"");return true;
         }

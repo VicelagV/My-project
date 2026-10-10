@@ -61,10 +61,13 @@ namespace AllAboard.Movement
         private float chargeTime;
         private const float CarryGap = 0.025f;
         private const float MinimumCarryDistance = 0.65f;
+        public float ToolProgress=>grabbedSaw!=null?grabbedSaw.Progress:grabbedWrench!=null?grabbedWrench.Progress:-1f;
+        public string ToolPrompt=>grabbedSaw!=null?"Saw: move mouse forward / backward":grabbedWrench!=null?"Wrench: move mouse forward / backward":"";
         public float Charge => Mathf.Clamp01(chargeTime / chargeDuration);
 
         public bool IsHolding => held != null;
         public PickupObject HeldItem => held;
+        public string HoverPrompt=>hoveredControl!=null?hoveredControl.Prompt:hovered!=null?(hovered.IsWelded?input.WeldKeyLabel+": detach":"E: pick up "+hovered.name):"";
         public void Configure(Transform pivot) => cameraPivot = pivot;
 
         private void Awake()
@@ -362,6 +365,7 @@ namespace AllAboard.Movement
 
         private void OnGUI()
         {
+            if(!showInteractionPrompts)return;
             if(grabbedWrench!=null&&input.HasControl){GUI.Label(new Rect(Screen.width*.5f-140,Screen.height*.5f+35,280,24),"Turn wrench forward / back");GUI.Box(new Rect(Screen.width*.5f-90,Screen.height*.5f+60,180*grabbedWrench.Progress,12),"");}
             if(grabbedSaw!=null&&input.HasControl)
             {

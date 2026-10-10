@@ -29,8 +29,10 @@ namespace AllAboard.Movement
         public bool GrabHeld => grab.IsPressed();
         public string WeldKeyLabel => Keyboard.current != null ? Keyboard.current.yKey.displayName : "Z";
         private bool menuOpen;
-        public bool HasControl => !menuOpen && !(GetComponent<AllAboard.Train.CombatHealth>()?.Down??false) && Application.isFocused && Cursor.lockState == CursorLockMode.Locked;
-        public void SetMenuOpen(bool open){menuOpen=open;if(open)ReleaseCursor();else CaptureCursor();}
+        private int menuClosedFrame=-1;
+        public bool MenuOpen=>menuOpen;
+        public bool HasControl => !menuOpen && Time.frameCount>menuClosedFrame && !(GetComponent<AllAboard.Train.CombatHealth>()?.Down??false) && Application.isFocused && Cursor.lockState == CursorLockMode.Locked;
+        public void SetMenuOpen(bool open){menuOpen=open;if(open)ReleaseCursor();else{menuClosedFrame=Time.frameCount;CaptureCursor();}}
 
         private void Awake()
         {
@@ -66,7 +68,7 @@ namespace AllAboard.Movement
 
         private void Update()
         {
-            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame&&Time.frameCount!=menuClosedFrame)
                 ReleaseCursor();
             else if (!menuOpen && Application.isFocused && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
                 CaptureCursor();

@@ -35,6 +35,13 @@ namespace AllAboard.Movement.Tests
         {wallet.Earn(1100);Assert.That(wallet.FinishDay(300,EconomyDifficulty.Normal,false),Is.True);Assert.That(wallet.RepairDebt,Is.EqualTo(200));wallet.BeginDay(2);Assert.That(wallet.Quota,Is.EqualTo(1950));Assert.That(wallet.Gold,Is.EqualTo(500));}
         [Test] public void UnpaidCapitalEntryOrQuotaCannotBecomeSuccess()
         {wallet.Earn(2000);Assert.That(wallet.FinishDay(0,EconomyDifficulty.Normal,true),Is.False);Assert.That(wallet.Blumt,Is.Zero);}
+        [Test] public void ReportReconcilesCashAndKeepsTheOriginalQuotaWhenRepairDebtChanges()
+        {
+            wallet.Earn(5000);wallet.Purchase(50);wallet.Spend(20);wallet.PayEntry();
+            Assert.That(wallet.TotalEarned,Is.EqualTo(5000));Assert.That(wallet.TotalPurchased,Is.EqualTo(50));Assert.That(wallet.TotalCashSpent,Is.EqualTo(1020));
+            Assert.That(wallet.FinishDay(4000,EconomyDifficulty.Normal,true),Is.True);
+            Assert.That(wallet.SettlementQuota,Is.EqualTo(1500));Assert.That(wallet.LastRepairsPaid,Is.EqualTo(2930));Assert.That(wallet.RepairDebt,Is.EqualTo(1070));
+        }
         [Test] public void VendorMarkupAndSpecializedSalvageUseConfiguredPrices()
         {
             var train=root.AddComponent<TrainController>();var vendor=root.AddComponent<RailwayVendor>();vendor.Configure(train,RailwayProduct.Steel,null,null);

@@ -29,7 +29,15 @@ namespace AllAboard.Train
             var cargo=actor.HeldItem!=null?actor.HeldItem.GetComponent<LootCargo>():null;
             if(cargo!=null&&wallet!=null)
             {if(button!=null&&button.IsPressed)return false;int value=SalePrice(cargo);if(!actor.ConsumeHeldItem())return false;wallet.Earn(value);button?.Press(actor);return true;}
-            if(Product!=RailwayProduct.Steel&&actor.IsHolding)return false;
+            if(!TryBuy(actor))return false;button?.Press(actor);return true;
+        }
+        public bool TryBuy(PlayerInteraction actor,Vector3? delivery=null)
+        {
+            if(actor==null||train==null)return false;
+            var wallet=train.GetComponent<RailwayInventory>();
+            bool physical=Product==RailwayProduct.Coal||Product==RailwayProduct.Saw||Product==RailwayProduct.Connector||Product==RailwayProduct.Wrench;
+            if(physical&&actor.IsHolding&&!delivery.HasValue)return false;
+            var button=delivery.HasValue?null:GetComponent<TrainButton>();
             if (wallet == null || (button != null && button.IsPressed) || !wallet.CanPurchase(Price)) return false;
             if (Product == RailwayProduct.Steel)
             { if (!wallet.PurchaseSteel(Price)) return false; }
@@ -39,12 +47,11 @@ namespace AllAboard.Train
                 if (Product == RailwayProduct.Coal && coal == null) return false;
                 var item = Product == RailwayProduct.Coal ? Instantiate(coal) : Product==RailwayProduct.Wrench?MaintenanceWrench.Create(palette):RailTool.Create(Product == RailwayProduct.Saw ? RailToolKind.Saw : RailToolKind.Connector, palette);
                 UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(item, gameObject.scene);
-                item.transform.position = transform.position + Vector3.up * .7f;
-                if (!actor.TryPickup(item.GetComponent<PickupObject>())) { Destroy(item); return false; }
+                item.transform.position = delivery??(transform.position + Vector3.up * .7f);
+                if (!delivery.HasValue&&!actor.TryPickup(item.GetComponent<PickupObject>())) { Destroy(item); return false; }
                 wallet.Purchase(Price);
                 if (Product == RailwayProduct.Coal) train.Resources.RegisterSupplyCoal();
             }
-            button?.Press(actor);
             return true;
         }
     }

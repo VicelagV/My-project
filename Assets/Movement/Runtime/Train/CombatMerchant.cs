@@ -10,10 +10,14 @@ namespace AllAboard.Train
   public override string Prompt=>"M1 / E: buy "+Product+" · "+Price+" Gold";
   public override bool Interact(PlayerInteraction actor)
   {
-   var button=GetComponent<TrainButton>();if(actor==null||bag.Settled||button.IsPressed||!bag.CanPurchase(Price))return false;
+   var button=GetComponent<TrainButton>();if(button!=null&&button.IsPressed)return false;if(!TryBuy(actor))return false;button?.Press(actor);return true;
+  }
+  public bool TryBuy(PlayerInteraction actor,Vector3? delivery=null)
+  {
+   if(actor==null||bag.Settled||!bag.CanPurchase(Price))return false;
    if(Product==CombatPurchase.Ammunition){if(!bag.Purchase(Price))return false;bag.AddStock(RailwayProduct.Ammunition,10);}
-   else{if(actor.IsHolding)return false;var item=Product<=CombatPurchase.Hatchet?WeaponArt.Create((WeaponKind)Product,bag,m):MedicalItem.Create(Product==CombatPurchase.Recovery,m);UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(item,gameObject.scene);item.transform.position=transform.position+Vector3.up*.7f;if(!actor.TryPickup(item.GetComponent<PickupObject>())){Destroy(item);return false;}bag.Purchase(Price);}
-   button.Press(actor);return true;
+   else{if(actor.IsHolding&&!delivery.HasValue)return false;var item=Product<=CombatPurchase.Hatchet?WeaponArt.Create((WeaponKind)Product,bag,m):MedicalItem.Create(Product==CombatPurchase.Recovery,m);UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(item,gameObject.scene);item.transform.position=delivery??(transform.position+Vector3.up*.7f);if(!delivery.HasValue&&!actor.TryPickup(item.GetComponent<PickupObject>())){Destroy(item);return false;}bag.Purchase(Price);}
+   return true;
   }
  }
  public sealed class MedicalItem:MonoBehaviour

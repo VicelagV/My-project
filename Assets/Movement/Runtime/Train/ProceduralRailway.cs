@@ -96,6 +96,7 @@ namespace AllAboard.Train
             var economy=train.GetComponent<TrainDayEconomy>();if(economy==null)economy=train.gameObject.AddComponent<TrainDayEconomy>();if(loadedProgress!=null)economy.SetDifficulty(loadedProgress.difficulty);economy.Configure(this,styledPalette);if(loadedProgress!=null)train.GetComponent<TrainMaintenance>().Restore(loadedProgress.upgrades);
             var combat=GetComponent<CombatWorld>();if(combat==null)combat=gameObject.AddComponent<CombatWorld>();combat.Configure(this,styledPalette);
             style.ApplyTrain(train);
+            var journeyUi=GetComponent<JourneyUI>();if(journeyUi==null)journeyUi=gameObject.AddComponent<JourneyUI>();journeyUi.Configure(this);
             Physics.SyncTransforms();
         }
         private Vector3[] PlanPoints(out Dictionary<string,int> indices)
@@ -155,7 +156,7 @@ namespace AllAboard.Train
                 }
             }
         }
-        private void OnGUI(){if(DayEnded)GUI.Label(new Rect(25f,25f,600f,45f),DayEndReason+" — restart Play mode to begin again");}
+        private void OnGUI(){if(GetComponent<JourneyUI>()==null&&DayEnded)GUI.Label(new Rect(25f,25f,600f,45f),DayEndReason+" — restart Play mode to begin again");}
         // Catmull-Rom's first differing point affects the segment two points earlier.
         private int SharedApproach(string node)
         {

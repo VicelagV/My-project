@@ -10,10 +10,10 @@ namespace AllAboard.Train
         private int tab;private Vector2 scroll;private GUIStyle panel,heading,text,button,small;private Texture2D backdrop,brass,enamel;
         public bool Visible {get;private set;}
         public void Configure(TrainDayEconomy owner){economy=owner;input=owner.World.gameObject.scene.GetRootGameObjects().SelectMany(o=>o.GetComponentsInChildren<PlayerInputReader>()).FirstOrDefault();}
-        public void Open(){Visible=true;input?.SetMenuOpen(true);}
+        public void Open(){var ui=economy.World.GetComponent<JourneyUI>();if(ui!=null){ui.OpenLedger();return;}Visible=true;input?.SetMenuOpen(true);}
         public void Close(){Visible=false;input?.SetMenuOpen(false);}
         private void OnDisable(){if(Visible)Close();}
-        private void Update(){var keyboard=Keyboard.current;if(keyboard==null)return;if(keyboard.tabKey.wasPressedThisFrame){if(Visible)Close();else if(input!=null&&(input.HasControl||economy.World.DayEnded))Open();}else if(Visible&&keyboard.escapeKey.wasPressedThisFrame)Close();}
+        private void Update(){if(economy!=null&&economy.World.GetComponent<JourneyUI>()!=null)return;var keyboard=Keyboard.current;if(keyboard==null)return;if(keyboard.tabKey.wasPressedThisFrame){if(Visible)Close();else if(input!=null&&(input.HasControl||economy.World.DayEnded))Open();}else if(Visible&&keyboard.escapeKey.wasPressedThisFrame)Close();}
         private static Texture2D Solid(Color color){var tex=new Texture2D(1,1);tex.SetPixel(0,0,color);tex.Apply();return tex;}
         private void Styles()
         {

@@ -17,6 +17,7 @@ namespace AllAboard.Train
         public void ConfigureDial(Transform pointer) { needle = pointer; Refresh(); }
         public string DisplayedText => label != null ? label.text : "";
         public DamageableComponent Condition => condition;
+        public InstrumentKind Kind=>kind;
         public void Configure(TrainController controller, InstrumentKind type, TextMesh text, DamageableComponent damage = null)
         { train = controller; kind = type; label = text; condition = damage; }
         private void Update() => Refresh();
